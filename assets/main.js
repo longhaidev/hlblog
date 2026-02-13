@@ -16,8 +16,10 @@
   const category = container?.dataset?.category || "";
 
   function computePostsJsonPath() {
-    const base = document.querySelector("base")?.href || location.origin + "/";
-    return new URL("posts.json", base).toString();
+    return new URL("posts.json", window.location.href).pathname.replace(
+      /\/[^\/]*$/,
+      "/posts.json",
+    );
   }
 
   // function computePostsJsonPath() {
@@ -61,6 +63,9 @@
       filteredPosts = posts.filter((p) => p.category === category);
     }
 
+    // Filter out inactive posts
+    filteredPosts = filteredPosts.filter((p) => p.status !== "inactive");
+
     // Sort newest first
     filteredPosts.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
@@ -76,15 +81,8 @@
       const li = document.createElement("li");
       li.className = "post-item";
 
-      const isInactive = post.status === "inactive";
-
       const a = document.createElement("a");
-      if (!isInactive) {
-        a.href = post.path || `posts/${post.date}/`;
-      } else {
-        a.style.cursor = "not-allowed";
-        a.classList.add("inactive");
-      }
+      a.href = post.path || `posts/${post.date}/`;
 
       const date = document.createElement("span");
       date.className = "post-date";
@@ -97,13 +95,6 @@
       const title = document.createElement("span");
       title.className = "post-title";
       title.textContent = post.title;
-
-      if (isInactive) {
-        const label = document.createElement("span");
-        label.className = "inactive-label";
-        label.textContent = " (temporary inactive)";
-        title.appendChild(label);
-      }
 
       a.appendChild(date);
       a.appendChild(sep);

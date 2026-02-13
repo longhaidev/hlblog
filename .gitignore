@@ -6,8 +6,8 @@ scripts/
 .env.local
 .env.*.local
 #json 
-
-#python
+ds
+#pythond
 .py
 # Backups
 *-old.*

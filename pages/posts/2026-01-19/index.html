@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="HL's Blog — a technical post." />
+    <meta name="theme-color" content="#0b0b0d" />
+    <title>Windows Registry</title>
+    <link rel="stylesheet" href="../../../assets/style.css" />
+    <link
+      rel="icon"
+      href="../../../assets/favicon/duck.jpg"
+      type="image/jpeg"
+    />
+    <link rel="apple-touch-icon" href="../../../assets/favicon/duck.jpg" />
+  </head>
+
+  <body>
+    <main class="container post-page" data-category="">
+      <header class="post-header">
+        <a class="back-link" href="/index.html">← All Posts</a>
+        <h1 class="post-title">Windows Registry</h1>
+        <div class="post-meta">2026-01-19</div>
+      </header>
+
+      <article class="post-content">
+        <!-- Foreword -->
+        <section id="fore-word">
+          <p>
+            <span class="title-highlight">Overview:</span>
+            This post shares beginner-friendly notes about the role of the
+            Windows Registry and its connection to the Windows boot process. The
+            content below is only a small part of a much larger topic, but
+            hopefully it’s useful to anyone who comes across it.
+          </p>
+
+          <p>
+            Have you ever wondered what actually happens after pressing the
+            power button on your computer or laptop?
+          </p>
+          <ul id="outline">
+            <li>
+              <a href="#boot-sequence" class="highlight">Boot Sequence</a>
+            </li>
+            <li>
+              <a href="#windows-registry" class="highlight">Windows Registry</a>
+              <ul>
+                <li>
+                  <a href="#structure-of-registry" class="highlight"
+                    >Structure of Registry</a
+                  >
+                  <ul>
+                    <li>
+                      <a href="#detail-predefined-keys" class="highlight"
+                        >Detailed breakdown</a
+                      >
+                      <ul>
+                        <li><a href="#HKCR" class="highlight">HKCR</a></li>
+                        <li><a href="#HKCU" class="highlight">HKCU</a></li>
+                        <li><a href="#HKLM" class="highlight">HKLM</a></li>
+                        <li><a href="#HKU" class="highlight">HKU</a></li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li><a href="#practice" class="highlight">Practice</a></li>
+          </ul>
+        </section>
+
+        <!-- Boot Sequence -->
+        <section id="boot-sequence">
+          <p>
+            The process that begins when you press the power button is called
+            the
+            <strong>Boot Sequence</strong>. It is typically divided into three
+            phases: <strong>BIOS Phase</strong>,
+            <strong>Boot Loader Phase</strong>, and
+            <strong>Kernel Phase</strong>. Let’s dive into it.
+          </p>
+
+          <ul>
+            <li id="bios-phase">
+              <strong>BIOS Phase:</strong>
+              <p>
+                After pressing the power button, the system runs POST (Power-On
+                Self-Test) to verify that essential hardware components are
+                functioning properly. Next, the BIOS searches for a bootable
+                device based on the configured boot order.
+              </p>
+
+              <p>
+                The selected boot device loads the MBR (Master Boot Record) into
+                RAM and executes its boot code, which looks for the active
+                partition. Finally, it executes the bootstrap code in the PBR
+                (Partition Boot Record), which loads
+                <span class="inline-highlight">bootmgr.exe</span> and transfers
+                control to the
+                <span class="inline-highlight">Boot Loader Phase</span>.
+              </p>
+            </li>
+
+            <li id="boot-loader-phase">
+              <strong>Boot Loader Phase</strong>
+              <p>
+                <span class="inline-highlight">bootmgr.exe</span>, located in
+                the root of the system partition, is executed. It loads the BCD
+                (Boot Configuration Data), which contains boot configuration
+                parameters such as the OS location, OS type, and boot options.
+                It then passes these parameters to the OS loader, which is
+                <span class="inline-highlight">winload.exe</span> on Windows.
+              </p>
+
+              <p>
+                <strong>What is the purpose of winload.exe?</strong>
+                It loads essential operating system components into memory,
+                including
+                <span class="inline-highlight">
+                  ntoskrnl.exe, HAL (hal.dll), boot-start drivers, and the
+                  SYSTEM registry hive </span
+                >. After that, control is transferred to the
+                <span class="inline-highlight">Kernel Phase</span>.
+              </p>
+            </li>
+
+            <li id="kernel-phase">
+              <strong>Kernel Phase</strong>
+              <p>
+                In this phase, the kernel performs two main tasks: low-level
+                initialization and system component loading.
+              </p>
+
+              <ul>
+                <li id="low-level-init">
+                  <span class="inline-highlight">Low-level initialization</span>
+                  <ul>
+                    <li>
+                      Set up memory management, initialize interrupts, and
+                      initialize the scheduler.
+                    </li>
+                    <li>
+                      Mount the
+                      <span class="inline-highlight">SYSTEM registry hive</span
+                      >, located at
+                      <span class="inline-highlight"
+                        >%SystemRoot%\System32\Config\SYSTEM</span
+                      >, which becomes
+                      <a class="highlight" href="#HKLM">HKLM\SYSTEM</a>.
+                    </li>
+                    <li>
+                      Load additional drivers based on configuration stored in
+                      the
+                      <span class="inline-highlight">SYSTEM registry hive</span>
+                      (e.g., start type, ImagePath, load order). User mode has
+                      not been created yet at this time.
+                    </li>
+                  </ul>
+                </li>
+
+                <li id="init-first-process">
+                  <p>
+                    After low-level initialization is complete, the system
+                    starts the Session Manager Subsystem,
+                    <span class="inline-highlight">smss.exe</span>.
+                  </p>
+
+                  <p>
+                    <span class="inline-highlight">smss.exe</span> creates
+                    Session 0 and mounts the remaining registry hives:
+                    <span class="inline-highlight">SAM</span>,
+                    <span class="inline-highlight">SECURITY</span>,
+                    <span class="inline-highlight">SOFTWARE</span>, and
+                    <span class="inline-highlight">DEFAULT</span>. It also
+                    initializes environment variables, creates the paging file,
+                    and starts Session 1, which launches:
+                    <span class="inline-highlight">csrss.exe</span>,
+                    <span class="inline-highlight">wininit.exe</span>, and
+                    <span class="inline-highlight">winlogon.exe</span>.
+                  </p>
+
+                  <p>
+                    <span class="inline-highlight">wininit.exe</span> starts
+                    <span class="inline-highlight"
+                      >services.exe (Service Control Manager)</span
+                    >
+                    and <span class="inline-highlight">lsass.exe</span>. The SCM
+                    launches services based on entries in
+                    <span class="inline-highlight"
+                      >HKLM\SYSTEM\CurrentControlSet\Services</span
+                    >.
+                  </p>
+
+                  <p>
+                    In parallel,
+                    <span class="inline-highlight">winlogon.exe</span> handles
+                    interactive logon and sends credentials to
+                    <span class="inline-highlight">lsass.exe</span> for
+                    verification. After a successful logon, the user profile
+                    hive is mounted as
+                    <span class="inline-highlight">HKCU</span>. Then
+                    <span class="inline-highlight">userinit.exe</span> starts
+                    <span class="inline-highlight">explorer.exe</span>.
+                  </p>
+                </li>
+              </ul>
+            </li>
+          </ul>
+          <p>
+            <strong>In summary:</strong>
+            we see that the
+            <span class="inline-highlight">Registry Hive</span> plays a crucial
+            role in the boot sequence, as shown in the table below:
+          </p>
+          <table style="width: 100%">
+            <tr>
+              <td style="width: 50%" class="highlight">Phase</td>
+              <td style="width: 50%" class="highlight">Used hive</td>
+            </tr>
+            <tr>
+              <td style="width: 50%">Kernel Phase</td>
+              <td style="width: 50%">HKLM\SYSTEM</td>
+            </tr>
+            <tr>
+              <td style="width: 50%">smss.exe</td>
+              <td style="width: 50%">HKLM\SYSTEM\SAM, SECURITY, SOFTWARE</td>
+            </tr>
+            <tr>
+              <td style="width: 50%">services</td>
+              <td style="width: 50%">SYSTEM\Services</td>
+            </tr>
+            <tr>
+              <td style="width: 50%">lsass.exe</td>
+              <td style="width: 50%">HKLM\SYSTEM\SAM, SECURITY</td>
+            </tr>
+            <tr>
+              <td style="width: 50%">User login</td>
+              <td style="width: 50%">HKCU</td>
+            </tr>
+          </table>
+          <p>
+            The next step is to explore what is
+            <span class="inline-highlight">Window Registry</span> and deeply
+            drive into 2 important keys which is
+            <span class="inline-highlight"> HKCU and HKLM </span>
+          </p>
+        </section>
+
+        <!-- Windows Registry -->
+        <section id="windows-registry">
+          <p>
+            In definition
+            <span class="title-highlight">The Windows Registry</span>
+            is a hierarchical database used by the operating system to store
+            low-level configuration settings, options, and information for both
+            the system and applications.
+          </p>
+
+          <p>
+            <span class="inline-highlight">The registry</span> consists of
+            <span class="inline-highlight">keys</span> and
+            <span class="inline-highlight">values</span> organized in a
+            hierarchical, tree-like structure. Each key can contain subkeys and
+            values, allowing configuration data to be stored and accessed
+            efficiently. The registry can be viewed and modified using the
+            <span class="inline-highlight">Registry Editor</span> (<span
+              class="inline-highlight"
+              >regedit.exe</span
+            >).
+          </p>
+        </section>
+        <!-- Structure of Registry -->
+        <section id="structure-of-registry">
+          <h4 class="title-highlight">Structure of Registry</h4>
+
+          <ul>
+            <li>
+              Registry root keys are similar to folders/directories in a file
+              system and are organized into a
+              <span class="inline-highlight">tree-like structure</span>. Each
+              node is called a key. Each key can contain both
+              <span class="inline-highlight">subkeys</span> and
+              <span class="inline-highlight">values (data entries)</span>.
+            </li>
+            <li>
+              A key can have any number of values, and values can store data in
+              different formats.
+            </li>
+            <li>
+              The following illustration shows an example registry key structure
+              in Registry Editor:
+            </li>
+          </ul>
+
+          <div class="image-container">
+            <img
+              src="./img/registry-key.png"
+              alt="Registry Key"
+              class="zoomImage"
+            />
+          </div>
+          <ul>
+            <li>
+              <p>
+                Each “folder” under
+                <span class="inline-highlight">My Computer</span> represents a
+                root key.
+              </p>
+            </li>
+            <li>
+              <p>
+                For example,
+                <span class="inline-highlight">HKEY_CURRENT_USER</span> has
+                subkeys such as AppEvents, Console, Control Panel, Environment,
+                etc. Each of these subkeys can have their own subkeys and
+                values. Each value has a name, a type, and associated data.
+              </p>
+            </li>
+          </ul>
+          <li>
+            <p>
+              <strong>Fact:</strong> A registry tree can be 512 levels deep, and
+              up to 32 levels can be created at a time through a single registry
+              API call.
+            </p>
+          </li>
+        </section>
+
+        <!-- Detail Breakdown -->
+        <section id="detail-predefinded-keys">
+          <h4 class="title-highlight">DETAILED BREAKDOWN</h4>
+          <!-- HKCR -->
+          <section id="HKCR">
+            <p>
+              <span class="inline-highlight">HKEY_CLASSES_ROOT (HKCR):</span>
+            </p>
+            <p>
+              This key defines how Windows handles file types and COM
+              components. It maps file extensions to applications. Example:
+            </p>
+
+            <div class="image-container">
+              <img
+                src="./img/class_root-img.png"
+                alt="class_root"
+                class="zoomImage"
+              />
+            </div>
+
+            <p>
+              Windows recognizes the
+              <span class="inline-highlight">.exe</span> extension as an
+              executable file and runs it using the command defined in the
+              registry:
+            </p>
+
+            <div class="image-container">
+              <img
+                src="./img/class_root-exefile.png"
+                alt="class_root"
+                class="zoomImage"
+              />
+            </div>
+
+            <p>
+              In other words, Windows does not purely “hardcode” how to handle
+              these extensions—it looks up instructions in the registry.
+            </p>
+          </section>
+          <!-- HKCU -->
+          <section id="HKCU">
+            <p>
+              <span class="inline-highlight">HKEY_CURRENT_USER (HKCU):</span>
+            </p>
+            <p>
+              HKCU contains configuration for the user who is currently logged
+              on. It stores things like environment variables, desktop settings,
+              network connections, and more.
+            </p>
+            <div class="image-container">
+              <img
+                src="./img/hkey-current-user.png"
+                alt="hkey-current-user"
+                class="zoomImage"
+              />
+            </div>
+
+            <p>
+              HKCU does not store data directly. Instead, it is a shortcut
+              (mapping) to the current user’s hive under:
+              <span class="inline-highlight">HKEY_USERS\&lt;User-SID&gt;</span>.
+              This mapping is created at logon and removed at logoff.
+            </p>
+
+            <p>HKCU is a shortcut to:</p>
+            <pre class="code-block">HKEY_USERS\&lt;User-SID&gt;</pre>
+
+            <p>
+              HKCU does not require administrative privileges because it stores
+              per-user configuration. Windows allows users to modify their own
+              registry hive.
+            </p>
+            <p>
+              Some common subkeys under
+              <span class="inline-highlight">HKEY_CURRENT_USER</span>:
+            </p>
+            <ul>
+              <li>
+                AppEvents: Sound events for the system and applications. Inside
+                this subkey also has 2 more childs which is
+                <span class="inline-highlight">EventLabels</span> and
+                <span class="inline-highlight">Schemes</span>
+              </li>
+              <li>
+                Console: Configuration for CMD/PowerShell (font, colors, etc.)
+              </li>
+              <li>Environment: User environment variables loaded at logon</li>
+              <li>
+                Control Panel: Accessibility, regional, and desktop appearance
+                settings
+              </li>
+              <li>Network: Mapped network drives (reconnected at logon)</li>
+              <li>Printers: Printer mappings</li>
+              <li>Volatile Environment: Runtime environment variables</li>
+              <li>System: User-level system behavior settings</li>
+              <li>...</li>
+            </ul>
+
+            <p>
+              Besides those, one especially important subkey is
+              <span class="inline-highlight">Software</span>.
+            </p>
+
+            <div class="image-container-300-300">
+              <img
+                src="./img/hkey-current-user-software.png"
+                alt="hkey-current-user-software"
+                class="zoomImage"
+              />
+            </div>
+
+            <p>
+              <span class="inline-highlight">HKEY_CURRENT_USER\Software</span>
+              contains user-specific software configuration that applies only to
+              the current user.
+            </p>
+
+            <p>
+              It can be roughly divided into
+              <span class="inline-highlight">four main parts</span>:
+            </p>
+
+            <ul>
+              <li>
+                Application settings: Configuration for installed applications
+                <div class="image-container-300-300">
+                  <img
+                    src="./img/hkey-current-user-software-app.png"
+                    alt="hkey-current-user-software-app"
+                    class="zoomImage"
+                  />
+                </div>
+              </li>
+
+              <li>
+                Windows configuration (user-level)
+                <div class="image-container">
+                  <img
+                    src="./img/hkey-current-user-software-microsoft.png"
+                    alt="hkey-current-user-software-app-microsoft"
+                    class="zoomImage"
+                  />
+                </div>
+
+                <p>
+                  The most important children of this subkey are
+                  <span class="inline-highlight">Windows</span> and
+                  <span class="inline-highlight">Windows NT</span>, which store
+                  user-specific Windows settings.
+                </p>
+                <pre class="code-block">
+HKCU
+ └─ Software
+    └─ Microsoft
+       ├─ Windows
+       │  └─ CurrentVersion
+       │     ├─ Explorer         --> File Explorer & shell settings (Desktop, Taskbar, etc.)
+       │     │  └─ Advanced      --> Useful settings like file extensions, hidden files, etc.
+       │     │      ├─ HideFileExt (DWORD)      --> 0 = show extensions, 1 = hide
+       │     │      └─ ShowSuperHidden (DWORD)  --> 1 = show protected OS files
+       │     ├─ Run              --> Programs that run at user logon
+       │     ├─ RunOnce          --> Programs that run once at logon, then get removed
+       │     └─ Policies         --> User policies
+       └─ WindowsNT
+          └─ CurrentVersion
+             └─ AppCompatFlags
+                └─ Layers        --> Compatibility mode overrides
+              </pre
+                >
+              </li>
+
+              <li>
+                File extensions and COM (user-level override)
+                <div class="image-container">
+                  <img
+                    src="./img/hkey-current-user-software-classes.png"
+                    alt="hkey-current-user-software-app-classes"
+                    class="zoomImage"
+                  />
+                </div>
+
+                <p>
+                  Windows uses registry data to resolve file associations and
+                  COM objects. One important point is that
+                  <span class="inline-highlight">HKCR</span> is not a “real”
+                  key—it is a merged view of HKCU and HKLM. HKCU takes
+                  precedence over HKLM when there are conflicts.
+                </p>
+              </li>
+
+              <li>
+                Policies and environment
+                <div class="image-container">
+                  <img
+                    src="./img/hkey-current-user-software-policies.png"
+                    alt="hkey-current-user-software-app-policies"
+                    class="zoomImage"
+                  />
+                </div>
+                <p>
+                  Stores user-specific policies and environment-related
+                  settings. Users can customize to prevent an extention to run.
+                </p>
+              </li>
+            </ul>
+          </section>
+          <!-- HKLM -->
+          <section id="HKLM">
+            <p>
+              <span class="inline-highlight">HKEY_LOCAL_MACHINE (HKLM):</span>
+            </p>
+            <p>
+              HKLM stores system-wide configuration that applies to all users.
+              It includes information about hardware, software, services,
+              drivers, and the operating system. I would say that this is the
+              most
+              <span class="inline-highlight">important Registry Hive</span>. The
+              structure of this key is displayed as below:
+            </p>
+            <pre class="code-block">
+HKLM
+ ├─ BCD00000000
+ ├─ SOFTWARE
+ ├─ HARDWARE
+ ├─ SECURITY
+ ├─ SAM
+ └─ SYSTEM
+          </pre
+            >
+            <ul id="HKLM-Subkeys">
+              <li id="HKLM-BCD">
+                <p>
+                  We will start with
+                  <span class="inline-highlight">BCD00000000</span>. The "BCD"
+                  is stand for
+                  <span class="inline-highligh">Boot Configuration Data</span>
+                  which I have mentioned early in
+                  <a class="highlight" href="#boot-sequence">Boot Sequence</a>.
+                  So it contains informations using by the bootmgr to get to
+                  know where is the OS location, OS type, and boot options,...
+                </p>
+              </li>
+              <li id="HKLM-SOFTWARE">
+                <p>
+                  And the next move is
+                  <span class="inline-highlight">SOFTWARE</span>. You may across
+                  the word "Software" which have been mentioned above in
+                  <a class="highlight" href="#HKCU">HKCU</a>. Kinda similar to
+                  HKCU but applies to all users instead of current logon user
+                  like HKCU. But with
+                  <span class="inline-highligh">Polices</span> all users will
+                  force to follow it. Any normal setting, HKCU is the
+                  precedence.
+                </p>
+              </li>
+              <li id="HKLM-HARDWARE">
+                <p>Contains information about Computer such as CPU, RAM,...</p>
+              </li>
+              <li id="HKLM-SAM">
+                <p>
+                  <span class="inline-highlight">SAM</span> which is stand for
+                  "Security Account Manager". It contains information of all
+                  local accounts on the computer. Stores username, group, and
+                  password (already hashed). You can copy SAM and SYSTEM files
+                  or use a tool to read data in the RAM of lsass.exe.
+                </p>
+              </li>
+              <li id="HKLM-SECURITY">
+                <p>
+                  If you are playing as normal role users you may not see its
+                  child of this
+                  <span class="inline-highlight">Security Hive</span>. I prefer
+                  you to download
+                  <a
+                    class="highlight"
+                    href="https://learn.microsoft.com/en-us/sysinternals/downloads/psexec"
+                    >PsExec</a
+                  >
+                  to explore these child. So this hive contains:
+                </p>
+                <ul>
+                  <li>Local Security Policy</li>
+                  <li>LSA (Local Security Authority) data</li>
+
+                  <li>
+                    Cached domain credentials: Store cached for last login
+                    session. LSASS compare input with cached. Login in if true.
+                  </li>
+                  <li>
+                    LSA Secrets: Store password of computer account in domain.
+                    In some case windows has to sending plaintext password
+                    (without hash). So it will need to encrypt and store, and
+                    the LSASS is the key
+                  </li>
+                </ul>
+              </li>
+              <li id="HKLM-SYSTEM">
+                <span class="inline-highlight"> HKEY_LOCAL_MACHINE\SYSTEM</span>
+                is a core Windows registry hive that stores system-level
+                configuration related to booting, the kernel, device drivers,
+                services, and hardware. It defines which drivers are loaded
+                during startup, how services are started, and how the operating
+                system interacts with hardware components. During system boot,
+                Windows reads this hive to select the active ControlSet and
+                initialize the operating environment, making it critical to
+                system stability—incorrect changes can prevent Windows from
+                starting properly.
+              </li>
+              <pre class="code-block">
+
+HKLM
+ ├─ SYSTEM
+    └─ CurrentControlSet -> Contains necessary configuration info for Windows to boot and operate. Includes drivers, services, system parameters.
+      ├─ Services
+      ├─ Control -> Contains system configurations such as computer name, memory management, and time zone.
+      ├─ Hardware Profiles ->
+      ├─ Enum -> Hardware ever been pluged in 
+      └─ MountedDevices ->
+                </pre
+              >
+            </ul>
+            <p>
+              <code class="inline-highlight"
+                >HKLM\SYSTEM\CurrentControlSet\Services</code
+              >
+            </p>
+            <ul>
+              <li>
+                Stores configuration for services and drivers. Each
+                driver/service typically has a key like:
+                <code class="inline-highlight"
+                  >HKLM\SYSTEM\CurrentControlSet\Services\&lt;Name&gt;</code
+                >.
+              </li>
+              <li>
+                The Service Control Manager (SCM) uses these entries to
+                start/stop/manage services. The OS also uses them during boot
+                (and when new hardware is detected) to load drivers based on
+                configuration and dependencies.
+              </li>
+              <li>
+                <span class="inline-highlight">CurrentControlSet</span> is a
+                pointer to one of the ControlSet00x keys (e.g., ControlSet001).
+                It usually points to the control set used for the most recent
+                successful boot.
+              </li>
+            </ul>
+
+            <p>
+              Some common values in
+              <code class="inline-highlight"
+                >HKLM\SYSTEM\CurrentControlSet\Services\&lt;Name&gt;</code
+              >:
+            </p>
+
+            <ul>
+              <li>
+                <code class="inline-highlight">Start</code>: Determines when the
+                service/driver starts
+                <ul>
+                  <li>0x0: Boot Start</li>
+                  <li>0x1: System Start</li>
+                  <li>0x2: Automatic Start</li>
+                  <li>0x3: Manual (on demand)</li>
+                  <li>0x4: Disabled</li>
+                </ul>
+              </li>
+
+              <li>
+                <code class="inline-highlight">Type</code>: Specifies the
+                service type
+                <ul>
+                  <li>0x1: Kernel driver</li>
+                  <li>0x2: File system driver</li>
+                  <li>0x10: Win32 own process</li>
+                  <li>0x20: Win32 share process</li>
+                </ul>
+              </li>
+
+              <li>
+                <code class="inline-highlight">ErrorControl</code>: Controls
+                boot behavior if the driver fails to start
+                <ul>
+                  <li>0x0: Ignore</li>
+                  <li>0x1: Normal</li>
+                  <li>0x2: Severe</li>
+                  <li>0x3: Critical</li>
+                </ul>
+              </li>
+            </ul>
+
+            <p>
+              <code class="inline-highlight"
+                >HKLM\SYSTEM\CurrentControlSet\Control</code
+              >
+            </p>
+            <ul>
+              <li>
+                Contains settings that control system startup and device
+                configuration.
+              </li>
+              <li>
+                Example:
+                <span class="inline-highlight">Class</span> stores device setup
+                class information (by class GUID).
+              </li>
+            </ul>
+
+            <p>
+              <code class="inline-highlight"
+                >HKLM\SYSTEM\CurrentControlSet\Enum</code
+              >
+            </p>
+            <ul>
+              <li>
+                Stores device enumeration data managed by the Plug and Play
+                (PnP) manager.
+              </li>
+            </ul>
+
+            <p>
+              <code class="inline-highlight"
+                >HKLM\SYSTEM\CurrentControlSet\MountedDevices</code
+              >
+            </p>
+            <ul>
+              <li>
+                Stores volume mappings (drive letters and volume GUIDs). Windows
+                uses this to keep drive assignments consistent across reboots.
+              </li>
+            </ul>
+          </section>
+          <section id="HKU">
+            <p>
+              <span class="inline-highlight">HKU</span>
+            </p>
+            <p>
+              Contains all registry hive of all user currently loaded on system
+            </p>
+            <pre class="code-block">
+              HKEY_USERS\[SID_of_current_logged-in_user]
+                            ↓
+              HKEY_USERS\S-1-5-18 → became HKCU 
+            </pre>
+          </section>
+        </section>
+        <!-- Practice -->
+        <h4 id="practice" class="highlight">
+          Practice task: Try changing the mouse speed using the Windows
+          Registry.
+        </h4>
+
+        <div class="image-container">
+          <img
+            src="./img/practice-registry.png"
+            alt="mouse-speed-in-registry-editor"
+            class="zoomImage"
+          />
+        </div>
+
+        <p>
+          The current mouse speed setting is stored in the following registry
+          key (value is 1), as shown above. To access it, open
+          <strong>HKEY_CURRENT_USER</strong> and navigate to the subkey that
+          contains mouse configuration. Then update the mouse speed value. The
+          full process is shown below.
+        </p>
+
+        <div class="image-container">
+          <img src="./img/practice.png" alt="code" class="zoomImage" />
+        </div>
+
+        <p>
+          The result after changing the mouse speed from 1 to 10 is shown below.
+        </p>
+
+        <div class="image-container">
+          <img src="./img/result.png" alt="result" class="zoomImage" />
+        </div>
+      </article>
+
+      <div id="modal" class="modal">
+        <span id="closeModal" class="close-btn">&times;</span>
+      </div>
+    </main>
+
+    <script src="../../../assets/main.js" defer></script>
+  </body>
+</html>

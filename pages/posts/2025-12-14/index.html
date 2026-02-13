@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="HL's Blog — a technical post." />
+    <meta name="theme-color" content="#0b0b0d" />
+    <title>Portable Executable (PE)</title>
+    <link rel="stylesheet" href="../../../assets/style.css" />
+    <link
+      rel="icon"
+      href="../../../assets/favicon/duck.jpg"
+      type="image/jpeg"
+    />
+    <link rel="apple-touch-icon" href="../../../assets/favicon/duck.jpg" />
+  </head>
+  <body>
+    <main class="container post-page" data-category="window">
+      <a class="back-link" href="/index.html">← All Posts</a>
+      <header class="post-header">
+        <h1 class="post-title">Portable Executable (PE)</h1>
+        <div class="post-meta">2025-12-14</div>
+      </header>
+      <article class="post-content">
+        <h2 class="highlight">So...What is PE?</h2>
+        PE format (Portable Executable format) In Windows, the PE format is used
+        to load and run programs. Simply put, PE helps Windows understand: The
+        program's code (app) Data Which DLLs to load The Entry Point (starting
+        memory address, indicating which code to run first) Take a look at the
+        picture below:
+        <div style="display: flex; flex-direction: row">
+          <div style="flex: 2; padding-right: 10px">
+            <h3>Detailed Breakdown of PE format</h3>
+            <h4>DOS Header starts at the first byte of the file (0x0000)</h4>
+            <ul>
+              <li>
+                Signature = 0x5A4D (first 2 bytes 0x0000 and 0x0001). 0x5A4D
+                stands for Mark Zbikowski (Microsoft engineer)
+                <p class="inline-highlight">
+                  MZ is the signature for Windows executable files
+                </p>
+              </li>
+              <li>
+                Pointer to PE Header (offset 0x3C = e_lfanew), pointing to the
+                PE Header.
+              </li>
+            </ul>
+            <h4>DOS STUB contains a string:</h4>
+            <ul>
+              <li>This program cannot be run in DOS mode</li>
+            </ul>
+          </div>
+          <div class="image-center" style="flex: 1">
+            <img src="./img/pe-basic-format-structure.png" />
+          </div>
+        </div>
+        <h3>NT Header which contains:</h3>
+        <ul>
+          <li>PE Signature</li>
+          <li>
+            File Header
+            <ul>
+              <li>
+                Machine: Indicates the target CPU architecture (32-bit or
+                64-bit).
+              </li>
+              <li>
+                NumberOfSections: Specifies how many sections are defined in the
+                Section Header table.
+              </li>
+              <li>TimeDateStamp: Records the compilation time of the file.</li>
+              <li>
+                PointerToSymbolTable: Offset to the symbol table, mainly used in
+                .obj files (set to 0 for .exe and .dll).
+              </li>
+              <li>
+                SizeOfOptionalHeader: Defines the size of the Optional Header.
+                This value is used to locate the Section Header by calculating:
+                e_lfanew + 4 (PE Signature) + 20 (File Header) +
+                SizeOfOptionalHeader.
+              </li>
+              <li>
+                Characteristics: Contains flags that inform the Windows kernel
+                whether the file is an executable (.exe) or a dynamic link
+                library (.dll).
+              </li>
+            </ul>
+          </li>
+
+          <li>
+            Optional Header
+            <ul>
+              <li>Magic: Defines PE type (0x10B - 32-bit or 0x20B - 64-bit)</li>
+              <li>Major/MinorLinkerVersion: Linker version</li>
+              <li>SizeOfCode: Size of the code section (.text)</li>
+              <li>SizeOfInitializedData: Total size of .data and .rdata</li>
+              <li>SizeOfUninitializedData: Total size of .bss</li>
+              <li>AddressOfEntryPoint (RVA): Entry point address</li>
+              <li>BaseOfCode (RVA): Code section address</li>
+              <li>BaseOfData (RVA): Data section address (only in PE32)</li>
+              <li>ImageBase: Memory load address</li>
+
+              <li>SectionAlignment: Memory allocation alignment</li>
+              <li>FileAlignment: File section alignment</li>
+              <li>Version Info: OS and subsystem versions</li>
+              <li>
+                SizeOfImage: Total image size in memory (includes headers,
+                sections, padding)
+              </li>
+              <li>Checksum: Image checksum (mandatory for .sys files)</li>
+              <li>Subsystem: Determines if it's GUI or console</li>
+              <li>
+                DllCharacteristics: Security and loading behavior flags (e.g.,
+                ASLR)
+              </li>
+              <li>Stack/Heap Reserve & Commit Sizes</li>
+              <li>NumberOfRvaAndSizes: Data Directory entries (usually 16)</li>
+              <li>
+                <p class="highlight" style="margin: 5px 0px 5px 0px">
+                  Data Directories
+                </p>
+                <ul>
+                  <li>Import Table: List of DLLs and APIs</li>
+                  <li>Export Table</li>
+                  <li>Resource Table</li>
+                  <li>Base Relocation Table</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+        <h3>
+          Section Headers which contains a lot of detailed information about
+          file
+        </h3>
+        <ul>
+          <li>Name</li>
+          <li>Virtual Size</li>
+          <li>Virtual Address</li>
+          <li>...</li>
+        </ul>
+        <h2 class="highlight">
+          That is briefly about PE definition. Ok let's see how it works in
+          practice
+        </h2>
+        <span>
+          <p class="inline-highlight">Overview:</p>
+          <span
+            >This practice will explore PE (Portable Executable) of
+            <p class="inline-highlight">notepad.exe</p></span
+          >
+        </span>
+        <p>Tool: CFF Explore</p>
+        <p>Let's take a look at the picture below and explore more.</p>
+        <div class="image-container">
+          <img
+            src="./img/dos-header-to-nt-header.png"
+            alt="Image 1"
+            class="zoomImage"
+          />
+        </div>
+
+        <span
+          >First part of this PE is DOS Header. The main porpose of this header
+          is to act as an standard identifier. The first line is
+          <p class="inline-highlight">e_magic</p>
+          which, as I explained above is the MZ signature mark this file as an
+          executable file
+        </span>
+        <p></p>
+        <span
+          >And the Second important thing is
+          <p class="inline-highlight">e_lfanew</p>
+          which point to the signature of
+          <p class="inline-highlight">NT Header</p></span
+        >
+        <p>Move next step to NT Header</p>
+        <div class="image-container">
+          <img src="./img/nt-header.png" alt="Image" class="zoomImage" />
+        </div>
+        <span
+          >Inside the NT Header is
+          <p class="inline-highlight">File Header</p>
+          and
+          <a href="#optional-header" class="inline-highlight"
+            >Optional Header</a
+          >
+          . See what inside the
+          <a href="#file-header" class="inline-highlight">File Header</a></span
+        >
+        <h4 id="file-header" class="highlight">File Header</h4>
+        <div class="image-container">
+          <img src="./img/file-header.png" alt="Image" class="zoomImage" />
+        </div>
+        <ul>
+          <li>
+            Machine: Let the window know the type of this machine is AMD64 (K8).
+            AMD64 64-bit extension to the x86 instruction set architecture
+          </li>
+          <li>
+            NumberOfSections: The number of section in
+            <a href="#section-header" class="inline-highlight"
+              >Section Header</a
+            >
+          </li>
+          <li>TimeDateStamp: Time file executed</li>
+        </ul>
+        <li>
+          SizeOfOptionalHeader: Size of Optional Header can be used to access
+          the Section Header by adding e_lfanew and 4 (Signature) +
+          20(FileHeader) + sizeOfOptionalHeader.
+        </li>
+        <li>
+          Characteristics: Identify this is an executable file or dynamic
+          library link
+        </li>
+        <h4 id="optional-header" class="highlight">Optional Header</h4>
+        <div class="image-container">
+          <img src="./img/optional-header.png" alt="Image" class="zoomImage" />
+        </div>
+        <span
+          >The main purpose of Optional Header in a PE is to provide crucial
+          information that the Window loader uses to properly load and execute
+          the program. The breakdown more information is following as
+          below:</span
+        >
+        <ul>
+          <li>
+            Magic: This is a signature of the PE. This lets window knows behind
+            this signature is a PE Format
+          </li>
+          <li>
+            AddressOfEntryPoint is the virtual address where execution starts.
+            When the program is loaded into memory by the Windows loader, the
+            loader adds this virtual address to the ImageBase to calculate the
+            actual memory address where execution begins.
+          </li>
+          <li>
+            ImageBase: This is the preferred load address of the PE in memory
+          </li>
+          <li>SectionAlignment: This is the alignment of sections in memory</li>
+          <li>FileAlignment: This is the alignment of sections in the file</li>
+          <li>SizeOfImage: This is the total size of the PE in memory</li>
+          <li>SizeOfHeaders: This is the combined size of the PE headers</li>
+
+          <li>
+            Subsystem: This indicates the required subsystem for the PE to run
+          </li>
+          <li>
+            DllCharacteristics: This contains flags that specify various
+            attributes of the PE
+          </li>
+          <li>
+            Data Directories: This is an array of structures that provide
+            important information about various tables and resources used by the
+            PE. Each entry in the Data Directory corresponds to a specific type
+            of data, such as the Import Table, Export Table, Resource Table, and
+            Base Relocation Table.
+          </li>
+        </ul>
+        <h4 class="highlight">Data Directories</h4>
+        <div class="image-container">
+          <img src="./img/data-directories.png" alt="Image" class="zoomImage" />
+        </div>
+        <span
+          >Data Directories are a table within the Optional Header that
+          describes the locations of important data structures in memory. Their
+          purpose is to inform the Windows loader where these structures are
+          stored and their sizes, instead of including them directly in the
+          headers.</span
+        >
+        <p class="highlight">Common Data Directories</p>
+        <ul>
+          <li>Export Table: Contains exported functions</li>
+          <li>Import Table: Lists imported DLLS and functions</li>
+          <li>
+            Resource Table: Store resources like icons, dialogs, and strings
+          </li>
+          <li>Base Relocation Table: Used for address relocation</li>
+          <li>Exception Table: Holds exception handling data</li>
+
+          <li>...</li>
+        </ul>
+        <p>
+          Each IMAGE_DATA_DIRECTORY entry includes its virtual address and size
+        </p>
+        <h4 id="section-header" class="highlight">Section Header</h4>
+        <div class="image-container">
+          <img src="./img/section-header.png" alt="Image" class="zoomImage" />
+        </div>
+        <span
+          >The main purpose of section header in a Portable Executable (PE) file
+          is to provide metadata that describes how different sections of the
+          executable are structured and laid out in memory. Each section
+          contains a specific type of data or code, and the section headers help
+          the Windows loader and other tools understand how to properly map and
+          load these sections into memory.</span
+        >
+        <i>That's all for the PE format (personally)...</i>
+      </article>
+      <div id="modal" class="modal">
+        <span id="closeModal" class="close-btn">&times;</span>
+      </div>
+    </main>
+    <script src="../../../assets/main.js" defer></script>
+  </body>
+</html>

@@ -7,15 +7,7 @@
 // POST LIST MODULE
 // ============================================================================
 function getSiteBasePath() {
-  // If hosted on GitHub Pages under a repo, first segment is the repo name
-  // ex: /hlblog/... => base = /hlblog/
-  const isGhPages = location.hostname.endsWith("github.io");
-  if (isGhPages) {
-    const repo = location.pathname.split("/")[1]; // "hlblog"
-    return `/${repo}/`;
-  }
-  // local / normal hosting
-  return "/";
+  return location.hostname.endsWith("github.io") ? "/hlblog/" : "/";
 }
 
 function makeSiteUrl(path) {

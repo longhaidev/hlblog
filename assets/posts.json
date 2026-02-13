@@ -1,0 +1,56 @@
+[
+  {
+    "date": "2025-12-14",
+    "title": "Portable Executable (PE)",
+    "path": "/pages/posts/2025-12-14/",
+    "status": "active"
+  },
+  {
+    "date": "2025-10-12",
+    "title": "CBJS: Reconaissance",
+    "path": "/pages/posts/2025-10-12/",
+    "status": "inactive"
+  },
+  {
+    "date": "2025-08-12",
+    "title": "CBJS: SQL Injection",
+    "path": "/pages/posts/2025-08-12/",
+    "status": "inactive"
+  },
+  {
+    "date": "2025-07-07",
+    "title": "CBJS: Command Injection",
+    "path": "/pages/posts/2025-07-07/",
+    "status": "inactive"
+  },
+  {
+    "date": "2025-06-16",
+    "title": "CBJS: Path Traversal",
+    "path": "/pages/posts/2025-06-16/",
+    "status": "inactive"
+  },
+  {
+    "date": "2025-06-04",
+    "title": "CBJS: File upload",
+    "path": "/pages/posts/2025-06-04/",
+    "status": "inactive"
+  },
+  {
+    "date": "2026-01-19",
+    "title": "Window Registry",
+    "path": "/pages/posts/2026-01-19/",
+    "status": "active"
+  },
+    {
+    "date": "2026-01-10",
+    "title": "x86 & x64 Architecture",
+    "path": "/pages/posts/2026-01-10/",
+    "status": "inactive"
+  },
+      {
+    "date": "2026-01-13",
+    "title": "lafarges_crackme_2",
+    "path": "/pages/posts/2026-01-13/",
+    "status": "active"
+  }
+]

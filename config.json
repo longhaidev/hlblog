@@ -1,0 +1,43 @@
+{
+  "project": {
+    "name": "HL's Blog",
+    "version": "2.0.0",
+    "description": "Minimalist dark-themed blog platform for technical content",
+    "author": "HL",
+    "license": "Personal"
+  },
+  "site": {
+    "title": "HL's Blog",
+    "description": "Blog about web development, operating systems, and security research",
+    "lang": "en",
+    "theme": {
+      "mode": "dark",
+      "colors": {
+        "background": "#0b0b0d",
+        "card": "#0c1117",
+        "text": "#ffffff",
+        "muted": "#9aa3ad",
+        "accent": "#9fb2ff"
+      }
+    }
+  },
+  "paths": {
+    "pages": "./pages",
+    "assets": "./assets",
+    "posts": "./pages/posts",
+    "categories": ["web", "os", "pwn"]
+  },
+  "assets": {
+    "styles": "./assets/style.css",
+    "scripts": "./assets/main.js",
+    "manifest": "./assets/posts.json",
+    "favicon": "./assets/favicon/duck.jpg"
+  },
+  "settings": {
+    "postSortOrder": "descending",
+    "postsPerPage": null,
+    "enableCategories": true,
+    "enableSearch": false,
+    "minimalLayout": true
+  }
+}

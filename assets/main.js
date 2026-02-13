@@ -23,7 +23,11 @@ function makeSiteUrl(path) {
   const baseUrl = `${location.origin}${basePath}`;
   return new URL(String(path).replace(/^\//, ""), baseUrl).toString();
 }
-
+(function fixBackLink() {
+  const a = document.getElementById("backLink");
+  if (!a) return;
+  a.href = makeSiteUrl("index.html");
+})();
 (function initPostList() {
   const list = document.getElementById("post-list");
   if (!list) return;

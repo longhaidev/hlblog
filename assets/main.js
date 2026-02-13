@@ -6,6 +6,23 @@
 // ============================================================================
 // POST LIST MODULE
 // ============================================================================
+function getSiteBasePath() {
+  // If hosted on GitHub Pages under a repo, first segment is the repo name
+  // ex: /hlblog/... => base = /hlblog/
+  const isGhPages = location.hostname.endsWith("github.io");
+  if (isGhPages) {
+    const repo = location.pathname.split("/")[1]; // "hlblog"
+    return `/${repo}/`;
+  }
+  // local / normal hosting
+  return "/";
+}
+
+function makeSiteUrl(path) {
+  const basePath = getSiteBasePath();
+  const baseUrl = `${location.origin}${basePath}`;
+  return new URL(String(path).replace(/^\//, ""), baseUrl).toString();
+}
 
 (function initPostList() {
   const list = document.getElementById("post-list");
@@ -82,12 +99,7 @@
       li.className = "post-item";
 
       const a = document.createElement("a");
-      const repo = location.hostname.endsWith("github.io")
-        ? "/" + location.pathname.split("/")[1]
-        : "";
-      const base = location.origin + repo + "/";
-      const p = post.path || `posts/${post.date}/`;
-      a.href = new URL(p.replace(/^\//, ""), base).toString();
+      a.href = makeSiteUrl(post.path || `posts/${post.date}/`);
 
       const date = document.createElement("span");
       date.className = "post-date";
@@ -111,7 +123,7 @@
     markActiveCategory(category);
   }
 
-  const postsJsonPath = computePostsJsonPath();
+  const postsJsonPath = makeSiteUrl("posts.json");
 
   fetch(postsJsonPath, { cache: "no-store" })
     .then((response) => {

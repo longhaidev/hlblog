@@ -82,7 +82,12 @@
       li.className = "post-item";
 
       const a = document.createElement("a");
-      a.href = post.path || `posts/${post.date}/`;
+      const repo = location.hostname.endsWith("github.io")
+        ? "/" + location.pathname.split("/")[1]
+        : "";
+      const base = location.origin + repo + "/";
+      const p = post.path || `posts/${post.date}/`;
+      a.href = new URL(p.replace(/^\//, ""), base).toString();
 
       const date = document.createElement("span");
       date.className = "post-date";

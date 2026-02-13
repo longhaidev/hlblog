@@ -17,7 +17,7 @@
 
   function computePostsJsonPath() {
     const base = document.querySelector("base")?.href || location.origin + "/";
-    return new URL("assets/posts.json", base).toString();
+    return new URL("posts.json", base).toString();
   }
 
   // function computePostsJsonPath() {

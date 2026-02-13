@@ -16,14 +16,19 @@
   const category = container?.dataset?.category || "";
 
   function computePostsJsonPath() {
-    const parts = location.pathname.split("/").filter(Boolean);
-    if (parts.length && parts[parts.length - 1].endsWith(".html")) {
-      parts.pop();
-    }
-    const ups = parts.length;
-    const prefix = ups ? "../".repeat(ups) : "./";
-    return prefix + "assets/posts.json";
+    const base = document.querySelector("base")?.href || location.origin + "/";
+    return new URL("assets/posts.json", base).toString();
   }
+
+  // function computePostsJsonPath() {
+  //   const parts = location.pathname.split("/").filter(Boolean);
+  //   if (parts.length && parts[parts.length - 1].endsWith(".html")) {
+  //     parts.pop();
+  //   }
+  //   const ups = parts.length;
+  //   const prefix = ups ? "../".repeat(ups) : "./";
+  //   return prefix + "assets/posts.json";
+  // }
 
   function markActiveCategory(cat) {
     const links = document.querySelectorAll(".category-link");

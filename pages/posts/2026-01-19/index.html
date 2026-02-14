@@ -13,7 +13,12 @@
       type="image/jpeg"
     />
     <link rel="apple-touch-icon" href="../../../assets/favicon/duck.jpg" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
   </head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
   <body>
     <main class="container post-page" data-category="">
@@ -787,7 +792,6 @@ HKLM
             class="zoomImage"
           />
         </div>
-
         <p>
           The current mouse speed setting is stored in the following registry
           key (value is 1), as shown above. To access it, open
@@ -795,15 +799,49 @@ HKLM
           contains mouse configuration. Then update the mouse speed value. The
           full process is shown below.
         </p>
+        <pre>
+          <code class="language-c code">
+#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+LSTATUS get_mouse_speed_registry(HKEY key_handle, WCHAR name[MAX_PATH], WCHAR* value, PDWORD value_length) {
+	return RegQueryValueExW(key_handle, name, 0, NULL, (LPBYTE)value, value_length);
+}
+LSTATUS modify_mouse_speed(HKEY key_handle,LPWSTR value_name, LPWSTR new_speed  ) {
+	DWORD length_of_new_data = (lstrlenW(new_speed) + 1) * sizeof(WCHAR);
+	return RegSetValueExW(key_handle, value_name, 0, REG_SZ, (LPBYTE)new_speed, length_of_new_data);
+}
+int main() {
+	HKEY key_handle = NULL;
+	LSTATUS reg_status;
+	WCHAR value[MAX_PATH];
+	DWORD value_length = sizeof(value);
+	LPWSTR new_speed = L"10";
+	reg_status = RegOpenKeyExW(HKEY_CURRENT_USER, L"Control Panel\\Mouse", 0, KEY_ALL_ACCESS, &key_handle);
 
-        <div class="image-container">
-          <img src="./img/practice.png" alt="code" class="zoomImage" />
-        </div>
+	if (reg_status == ERROR_SUCCESS) {
+		wprintf(L"Open registry success, address at %p\n", &key_handle);
+		reg_status = modify_mouse_speed(key_handle, L"MouseSpeed", new_speed);
 
+		reg_status = get_mouse_speed_registry(key_handle, L"MouseSpeed", value, &value_length);
+
+		if (reg_status == ERROR_SUCCESS) {
+			wprintf(L"Current Mouse Speed: %s\n ", value);
+		}
+		else {
+			wprintf(L"Error reading value");
+		}
+	}
+	else {
+		wprintf(L"Failed to open registry key");
+	}
+	RegCloseKey(key_handle);
+	return 0;
+}
+</code>
+</pre>
         <p>
           The result after changing the mouse speed from 1 to 10 is shown below.
         </p>
-
         <div class="image-container">
           <img src="./img/result.png" alt="result" class="zoomImage" />
         </div>
@@ -813,7 +851,6 @@ HKLM
         <span id="closeModal" class="close-btn">&times;</span>
       </div>
     </main>
-
     <script src="../../../assets/main.js" defer></script>
   </body>
 </html>

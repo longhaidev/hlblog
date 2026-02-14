@@ -2,10 +2,11 @@
  * Blog JS Utilities
  * Handles post list rendering, modal interactions, title highlighting, and scroll-to-top functionality
  */
-
+// hljs.highlightAll();
 // ============================================================================
 // POST LIST MODULE
 // ============================================================================
+
 function getSiteBasePath() {
   return location.hostname.endsWith("github.io") ? "/hlblog/" : "/";
 }
@@ -76,8 +77,8 @@ function makeSiteUrl(path) {
       filteredPosts = posts.filter((p) => p.category === category);
     }
 
-    // Filter out inactive posts
-    filteredPosts = filteredPosts.filter((p) => p.status !== "inactive");
+    // Only render posts explicitly marked active
+    filteredPosts = filteredPosts.filter((p) => p.status === "active");
 
     // Sort newest first
     filteredPosts.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -263,3 +264,4 @@ function makeSiteUrl(path) {
   window.addEventListener("hashchange", processHashNavigation);
   window.addEventListener("load", processHashNavigation);
 })();
+hljs.highlightAll();

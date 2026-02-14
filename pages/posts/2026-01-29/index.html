@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="post-status" content="active" />
+    <title>Task Scheduler in Window</title>
+    <link rel="stylesheet" href="../../../assets/style.css" />
+    <link
+      rel="icon"
+      href="../../../assets/favicon/duck.jpg"
+      type="image/jpeg"
+    />
+    <link rel="apple-touch-icon" href="../../../assets/favicon/duck.jpg" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
+  </head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <body>
+    <main class="container post-page" data-category="">
+      <a class="back-link" id="backLink" href="#">← All Posts</a>
+      <header class="post-header">
+        <h1 class="post-title">Task Scheduler in Window</h1>
+        <div class="post-meta">2026-01-29</div>
+      </header>
+      <article class="post-content">
+        <section id="fore-word">
+          <p>
+            <span class="title-highlight">Overview:</span>
+            In this post we will discuss about Task Scheduler, main parts of the
+            Task, the relation between Task Scheduler and
+            <a href="../2026-01-19/index.html" class="highlight"
+              >Window Registry</a
+            >. How COM (Component Object Model) controls Task Scheduler with
+            interfaces. Last is some practice in work.
+          </p>
+          <ul id="outline">
+            <li>
+              <a class="highlight" href="#task-scheduler"
+                >Task Scheduler and How its work</a
+              >
+              <ul id="task-scheduler-break-down">
+                <li>
+                  <a class="highlight" href="#task-structure"
+                    >Structure of a single Task</a
+                  >
+                </li>
+                <li>
+                  <a class="highlight" href="#relation-with-WR"
+                    >Task Scheduler and Window Registry</a
+                  >
+                </li>
+                <li>
+                  <a class="highlight" href="#com-api">COM API</a>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <a class="highlight" href="#practice"
+                >Create a logon task using COM API</a
+              >
+            </li>
+          </ul>
+        </section>
+        <section id="task-scheduler" class="title-highligh">
+          <p>
+            <span class="title-highlight">Task Scheduler</span> is a window
+            service provided automated execution framwork that lets user or
+            system automatically run program when certain condition are met.
+            Which based on:
+          </p>
+          <ul id="AEF">
+            <li>Time-based scheduling</li>
+            <li>Event Driven Execution</li>
+            <li>System state (idle, networks available,...)</li>
+            <li>Logon, Boot trigger</li>
+          </ul>
+          <div class="image-container">
+            <img
+              src="./img/task-scheduler.png"
+              alt="task-scheduler"
+              class="zoomImage"
+            />
+          </div>
+          While the picture above displays the graphical interface of the Task
+          Scheduler, the underlying system is not inherently graphical. It
+          relies on Windows Service–based COM APIs, an XML-based configuration
+          mechanism, and a secure execution engine that runs within specific
+          security contexts
+          <br />
+          <p>
+            So how does the
+            <span class="inline-highlight">Task Scheduler</span> actually works?
+          </p>
+
+          <p>
+            As mentioned earlier, the Task Scheduler operates on top of several
+            underlying components, including the COM API layers and Windows
+            Services, which work together to deliver its functionality. The
+            high-level architectural workflow is illustrated below:
+          </p>
+          <pre class="code-block">
+User / Program / Script
+            ↓
+Task Scheduler API
+            ↓
+Task Scheduler Service (Schedule)
+            ↓
+Task Definition (XML + Registry metadata)
+            ↓
+Trigger → Action → Process Creation
+          </pre>
+        </section>
+        <section id="task-structure">
+          <p>
+            A task consists of five
+            <span class="inline-highlight">main components</span>, displayed as
+            below:
+          </p>
+          <pre class="code-block">
+Task
+ ├── RegistrationInfo -> Contrain metadata such as: Author, description, data, URI
+ ├── Principal -> Defines the security context in which task runs 
+ ├── Triggers - Define when task runs
+ ├── Actions - Define what the task runs 
+ └── Settings - Control runtime behavior like StartWhenAvailable, AllowDemandStart, StopIfGoingOnBatteries,...
+          </pre>
+          So, after task is created. How can Windows reads and executes the
+          task? In the next section, we will jump to the relation between
+          <span class="title-highlight" id="relation-with-WR">
+            Window Registry and Task Scheduler</span
+          >
+          right a way.
+        </section>
+        <section>
+          <p>
+            After created, the task is stored in
+            <span class="inline-highlight">C:\Windows\System32\Tasks\ </span> as
+            a <a class="highlight" href="#xml-example">XML Definition</a>. Then
+            new entry of this task is created and stored in
+            <span class="inline-highlight"
+              >HKLM\SOFTWARE\Microsoft\Windows
+              NT\CurrentVersion\Schedule\TaskCache\Tree </span
+            >. And also the GUID created and stored in
+            <span class="inline-highlight"
+              >HKLM\SOFTWARE\Microsoft\Windows
+              NT\CurrentVersion\Schedule\TaskCache\Task
+            </span>
+          </p>
+          <div class="image-container">
+            <img
+              src="./img/relation.png"
+              alt="task-scheduler"
+              class="zoomImage"
+            />
+          </div>
+          <p id="xml-example" class="title-highlight">Example of XML</p>
+          <pre><code class="code language-xml">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-16&quot;?&gt;
+&lt;Task version=&quot;1.4&quot; xmlns=&quot;http://schemas.microsoft.com/windows/2004/02/mit/task&quot;&gt;
+  &lt;Triggers&gt;
+    &lt;LogonTrigger&gt;
+      &lt;Enabled&gt;true&lt;/Enabled&gt;
+    &lt;/LogonTrigger&gt;
+  &lt;/Triggers&gt;
+
+  &lt;Principals&gt;
+    &lt;Principal id=&quot;Author&quot;&gt;
+      &lt;LogonType&gt;InteractiveToken&lt;/LogonType&gt;
+      &lt;RunLevel&gt;LeastPrivilege&lt;/RunLevel&gt;
+    &lt;/Principal&gt;
+  &lt;/Principals&gt;
+
+  &lt;Actions Context=&quot;Author&quot;&gt;
+    &lt;Exec&gt;
+      &lt;Command&gt;C:\Windows\System32\notepad.exe&lt;/Command&gt;
+    &lt;/Exec&gt;
+  &lt;/Actions&gt;
+&lt;/Task&gt;</code></pre>
+        </section>
+        <section id="com-api-s">
+          <p id="com-api" class="title-highlight">
+            Using COM API to control Task Manager
+          </p>
+          <p>
+            <span class="inline-highlight"
+              >COM stands for Component Object Model.</span
+            >
+
+            It is a Microsoft technology that allows different software
+            components to communicate with each other through API , even if they
+            are written in different programming languages.
+          </p>
+          <table style="width: 100%">
+            <tr>
+              <td style="width: 50%" class="highlight">Interface</td>
+              <td style="width: 50%" class="highlight">Role</td>
+            </tr>
+            <tr>
+              <td style="width: 50%">ITaskService</td>
+              <td style="width: 50%">
+                Entry point to connect to Task Scheduler
+              </td>
+            </tr>
+            <tr>
+              <td style="width: 50%">IPrincipal</td>
+              <td style="width: 50%">
+                To set security context and privilleges
+              </td>
+            </tr>
+            <tr>
+              <td style="width: 50%">ITaskFolder</td>
+              <td style="width: 50%">Folder Access - To get root folder</td>
+            </tr>
+            <tr>
+              <td style="width: 50%">ITaskDefinition</td>
+              <td style="width: 50%">Task Contruction - Create task</td>
+            </tr>
+            <tr>
+              <td style="width: 50%">ITriggerCollection</td>
+              <td style="width: 50%">Trigger Managerment</td>
+            </tr>
+            <tr>
+              <td style="width: 50%">IRegisteredTask</td>
+              <td style="width: 50%">Registerd task Instance</td>
+            </tr>
+          </table>
+          <br />
+          <p class="highlight">
+            The following procedure describes how to schedule a task to start an
+            executable process
+          </p>
+          <p>Step 1: Initialize COM</p>
+          <code class="language-c code-block">
+            CoInitializeEx(NULL, COINIT_MULTITHREADED);
+          </code>
+          <p>Step 2: Create ITaskService (entry point)</p>
+          <code class="language-c code-block">
+            CoCreateInstance(CLSID_TaskScheduler, ...);
+          </code>
+          <p>Step 3: Connect</p>
+          <code class="language-c code-block"> service->Connect(...) </code>
+          <p>Step 4: Create New Task</p>
+          <code class="language-c code-block">
+            service->NewTask(0, &taskDefinition);
+          </code>
+          <p>Step 5: Configure Task</p>
+          <pre class="code-block">
+Set RegistrationInfo
+Configure Principal
+Create Trigger
+Create Action
+Configure Settings
+</pre
+          >
+          <p>Step 6: RegisterTaskDefinition</p>
+          <code class="language-c code-block">
+            folder->RegisterTaskDefinition(...)
+          </code>
+        </section>
+        <section id="practice">
+          <p class="title-highlight">
+            Practical work: Create task which is triggered when logon to execute
+            notepad.exe
+          </p>
+          <br />
+          You can have a briefly look over this template
+          <a
+            class="highlight"
+            href="https://learn.microsoft.com/en-us/windows/win32/taskschd/boot-trigger-example--c---"
+          >
+            reference</a
+          >. Which is demonstrated how to create a task after 30 seconds since
+          the system is started.
+          <p>
+            In this work we need to create a new task, which will start a
+            process called notepad.exe when ever user logon.
+          </p>
+        </section>
+      </article>
+      <div id="modal" class="modal">
+        <span id="closeModal" class="close-btn">&times;</span>
+      </div>
+    </main>
+    <script src="../../../assets/main.js" defer></script>
+  </body>
+</html>

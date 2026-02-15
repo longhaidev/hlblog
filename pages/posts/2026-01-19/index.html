@@ -799,8 +799,7 @@ HKLM
           contains mouse configuration. Then update the mouse speed value. The
           full process is shown below.
         </p>
-        <pre>
-          <code class="language-c code">
+        <pre><code class="language-c code">
 #include &lt;Windows.h&gt;
 #include &lt;stdio.h&gt;
 LSTATUS get_mouse_speed_registry(HKEY key_handle, WCHAR name[MAX_PATH], WCHAR* value, PDWORD value_length) {
@@ -837,8 +836,7 @@ int main() {
 	RegCloseKey(key_handle);
 	return 0;
 }
-</code>
-</pre>
+</code></pre>
         <p>
           The result after changing the mouse speed from 1 to 10 is shown below.
         </p>

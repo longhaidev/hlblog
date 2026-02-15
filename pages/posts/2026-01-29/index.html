@@ -191,7 +191,9 @@ Task
 
             It is a Microsoft technology that allows different software
             components to communicate with each other through API , even if they
-            are written in different programming languages.
+            are written in different programming languages. So take a briefly
+            look around those interface that work with Task Scheduler as
+            following.
           </p>
           <table style="width: 100%">
             <tr>
@@ -205,26 +207,59 @@ Task
               </td>
             </tr>
             <tr>
-              <td style="width: 50%">IPrincipal</td>
+              <td style="width: 50%">ITaskFolder</td>
               <td style="width: 50%">
-                To set security context and privilleges
+                Folder Access - To get root folder, or specific path
               </td>
             </tr>
             <tr>
-              <td style="width: 50%">ITaskFolder</td>
-              <td style="width: 50%">Folder Access - To get root folder</td>
+              <td style="width: 50%">ITaskDefinition</td>
+              <td style="width: 50%">Task Contruction - Create a new task</td>
             </tr>
             <tr>
-              <td style="width: 50%">ITaskDefinition</td>
-              <td style="width: 50%">Task Contruction - Create task</td>
+              <td style="width: 50%">IRegistrationInfo</td>
+              <td style="width: 50%">Registration Info like author,...</td>
+            </tr>
+            <tr>
+              <td style="width: 50%">IPrincipal</td>
+              <td style="width: 50%">
+                To set privileges, this task run with user privilege
+                (LeastPrivilege) or run with highest privilege
+                (HighestAvailable). Also to define the logon type,...
+              </td>
+            </tr>
+            <tr>
+              <td style="width: 50%">ITaskSettings</td>
+              <td style="width: 50%">
+                To set the way how the task run. Like run when available or
+                parallel, stop if take to long, when system idle, on battery,...
+              </td>
             </tr>
             <tr>
               <td style="width: 50%">ITriggerCollection</td>
-              <td style="width: 50%">Trigger Managerment</td>
+              <td style="width: 50%">
+                To set the way when the task is triggered, once a day, specific
+                time in a day, once a week,...
+              </td>
+            </tr>
+            <tr>
+              <td style="width: 50%">IAction</td>
+              <td style="width: 50%">
+                To set what action for the task. Run a program, execute the
+                scripts,...
+              </td>
+            </tr>
+            <tr>
+              <td style="width: 50%">IExecAction</td>
+              <td style="width: 50%">
+                The action to execute the scripts or extentions.
+              </td>
             </tr>
             <tr>
               <td style="width: 50%">IRegisteredTask</td>
-              <td style="width: 50%">Registerd task Instance</td>
+              <td style="width: 50%">
+                Stand for a existed task in Task Scheduler
+              </td>
             </tr>
           </table>
           <br />
@@ -233,32 +268,37 @@ Task
             executable process
           </p>
           <p>Step 1: Initialize COM</p>
-          <code class="language-c code-block">
-            CoInitializeEx(NULL, COINIT_MULTITHREADED);
-          </code>
-          <p>Step 2: Create ITaskService (entry point)</p>
-          <code class="language-c code-block">
-            CoCreateInstance(CLSID_TaskScheduler, ...);
-          </code>
-          <p>Step 3: Connect</p>
-          <code class="language-c code-block"> service->Connect(...) </code>
-          <p>Step 4: Create New Task</p>
-          <code class="language-c code-block">
-            service->NewTask(0, &taskDefinition);
-          </code>
-          <p>Step 5: Configure Task</p>
-          <pre class="code-block">
-Set RegistrationInfo
-Configure Principal
-Create Trigger
-Create Action
-Configure Settings
-</pre
-          >
-          <p>Step 6: RegisterTaskDefinition</p>
-          <code class="language-c code-block">
-            folder->RegisterTaskDefinition(...)
-          </code>
+          <pre><code class="language-c code-block">
+CoInitializeEx(NULL, COINIT_MULTITHREADED); // Initialize COM library for thread
+         </code></pre>
+          <p>Step 2: Create Entry point</p>
+          <pre><code class="language-c code-block">
+CoCreateInstance(&CLSID_TaskScheduler, NULL, CLSCTX_INPROC_SERVER, &IID_ITaskService, ppServicePointer);
+          </code></pre>
+          <p>Step 3: Connect to the Task Scheduler service</p>
+          <pre><code class="language-c code-block">
+service_pointer->lpVtbl->Connect(service_pointer, vEmpty, vEmpty, vEmpty, vEmpty);
+         </code></pre>
+          <p>Step 4: Get the root folder</p>
+          <pre><code class="language-c code-block">
+service_pointer->lpVtbl->GetFolder(service_pointer, root_path,&root_folder_pointer);
+          </code></pre>
+          <p>Step 5: Create new Task</p>
+          <pre><code class="language-c code-block">
+service_pointer->lpVtbl->NewTask(service_pointer, 0, &task_pointer);
+          </code></pre>
+          <p>Step 6: Configure the Task</p>
+          <pre><code class="language-c code-block">
+Config RegistrationInfo - Blueprint of the task
+Config Principal - Security context and Privilege
+Config Settings - Task Context
+Create Trigger - Trigger of the Task 
+Create Action - Action 
+          </code></pre>
+          <p>Step 7: Register the Task to Task Scheduler</p>
+          <pre><code class="language-c code-block">
+root_folder_pointer->lpVtbl->RegisterTaskDefinition(...)
+          </code></pre>
         </section>
         <section id="practice">
           <p class="title-highlight">
@@ -278,6 +318,299 @@ Configure Settings
             In this work we need to create a new task, which will start a
             process called notepad.exe when ever user logon.
           </p>
+
+          <pre><code class="language-c code">#include &lt;windows.h&gt;
+#include &lt;oleauto.h&gt;
+#include &lt;taskschd.h&gt;
+#include &lt;wchar.h&gt;
+#include &lt;stdio.h&gt;
+
+#pragma comment(lib, &quot;ole32.lib&quot;)
+#pragma comment(lib, &quot;oleaut32.lib&quot;)
+#pragma comment(lib, &quot;taskschd.lib&quot;)
+
+int main() {
+	// this variable stores HRESULT return values from COM calls
+	HRESULT result = S_OK;
+	// define pointers to COM interfaces
+	ITaskService* service_pointer = NULL;
+
+	ITaskFolder* root_folder_pointer = NULL;
+	ITaskFolder* task_folder_pointer = NULL;
+
+	ITaskDefinition* task_pointer = NULL;
+	IRegistrationInfo* task_registration_info_pointer = NULL; 
+
+	IPrincipal* task_principal_pointer = NULL;
+
+	ITaskSettings* task_setting_pointer = NULL;
+
+	ITriggerCollection* task_triggers_pointer = NULL;
+	ITrigger* trigger_pointer = NULL;
+	ILogonTrigger* logon_trigger_pointer = NULL;
+
+	IActionCollection* task_actions_pointer = NULL;
+	IAction* action_pointer = NULL;
+	IExecAction* exec_action_pointer = NULL;
+
+	IRegisteredTask* registerd_task_pointer = NULL;
+	// create empty VARIANT parameters 
+	VARIANT vEmpty;
+	VariantInit(&amp;vEmpty);
+	// BSTR Define
+	BSTR root_path = NULL;
+	BSTR bstr_task_name = NULL;
+	BSTR bstr_author_name = NULL;
+	BSTR bstr_trigger_id = NULL;
+	BSTR bstr_exec_path = NULL;
+	BSTR bstr_task_folder = NULL;
+ 	
+	//--- STEP 1: INITIALIZE COM ---
+	result = CoInitializeEx(NULL, COINIT_MULTITHREADED); //  Initialize COM library for thread 
+	if (FAILED(result)) {
+		wprintf(L&quot;faile to init COM&quot;);
+		goto Cleanup;
+	}
+	//--- STEP 2: CREATE ENTRY POINT ---
+	result = CoCreateInstance(&amp;CLSID_TaskScheduler, NULL, CLSCTX_INPROC_SERVER, &amp;IID_ITaskService, (VOID**)&amp;service_pointer); // Create ITaskService, the entry point to the Task Scheduler service 
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to create entry point&quot;);
+		goto Cleanup;
+	}
+	//--- STEP 3: CONNECT TO THE TASK SCHEDULER SERVICE ---
+	result = service_pointer-&gt;lpVtbl-&gt;Connect(service_pointer, vEmpty, vEmpty, vEmpty, vEmpty); // Connect to the Task Scheduler service 
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to connect to the task service&quot;);
+		goto Cleanup;	 
+	}
+	//--- STEP 4: GET THE ROOT FOLDER ---
+	root_path = SysAllocString(L&quot;\\&quot;);
+	result = service_pointer-&gt;lpVtbl-&gt;GetFolder(service_pointer, root_path,&amp;root_folder_pointer); // Get the root task folder pointer
+	SysFreeString(root_path);
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to get root folder&quot;);
+		goto Cleanup;
+	} 
+	
+	bstr_task_folder = SysAllocString(L&quot;\\COMTasks\\COMOpenNotePad&quot;);
+	root_folder_pointer-&gt;lpVtbl-&gt;CreateFolder(root_folder_pointer, bstr_task_folder,vEmpty,&amp;task_folder_pointer); // create a folder to store the task
+	// Keep this folder pointer for later use.
+	SysFreeString(bstr_task_folder);
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to create task folder&quot;);
+		goto Cleanup;
+	}
+	//--- STEP 5: CREATE NEW TASK ---
+	result = service_pointer-&gt;lpVtbl-&gt;NewTask(service_pointer, 0, &amp;task_pointer);	 //create new task 
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to create new task&quot;);
+		goto Cleanup;
+	}
+	
+	service_pointer-&gt;lpVtbl-&gt;Release(service_pointer); // release ITaskService; it is no longer needed after NewTask()
+	service_pointer = NULL;
+
+	//--- STEP 6: CONFIGURE THE TASK ---
+	// registration info -&gt; we can assume this is a blueprint of the task 
+	
+	result = task_pointer-&gt;lpVtbl-&gt;get_RegistrationInfo(task_pointer, &amp;task_registration_info_pointer); // create a blueprint for the task 
+	if (FAILED(result)) {
+		wprintf(L&quot;Cannot get identification pointer&quot;);
+		goto Cleanup;
+	}
+	
+	bstr_author_name = SysAllocString(L&quot;COMTask&quot;);
+	result = task_registration_info_pointer-&gt;lpVtbl-&gt;put_Author(task_registration_info_pointer, bstr_author_name); // set author name for this task 
+	SysFreeString(bstr_author_name);
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to put author name&quot;);
+		goto Cleanup;
+	}
+	
+	task_registration_info_pointer-&gt;lpVtbl-&gt;Release(task_registration_info_pointer);
+	task_registration_info_pointer = NULL;
+	
+	
+	result = task_pointer-&gt;lpVtbl-&gt;get_Principal(task_pointer, &amp;task_principal_pointer); // get principal pointer - defines privilege
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to get principal pointer&quot;);
+		goto Cleanup;
+	}
+
+	result = task_principal_pointer-&gt;lpVtbl-&gt;put_LogonType(task_principal_pointer, TASK_LOGON_INTERACTIVE_TOKEN); 	// configure logon type
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to config task principal&quot;);
+		goto Cleanup;
+	}
+	
+	task_principal_pointer-&gt;lpVtbl-&gt;Release(task_principal_pointer);
+	task_principal_pointer = NULL;
+
+	//next to configure the setting -  the way how does this task run 
+	// 
+	
+	result = task_pointer-&gt;lpVtbl-&gt;get_Settings(task_pointer, &amp;task_setting_pointer); //get setting pointer 
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to get setting pointer&quot;);
+		goto Cleanup;
+	}
+	
+	result = task_setting_pointer-&gt;lpVtbl-&gt;put_StartWhenAvailable(task_setting_pointer, VARIANT_TRUE); // config setting for task to start when available 
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to config setting for task&quot;);
+		goto Cleanup;
+	}
+	
+	task_setting_pointer-&gt;lpVtbl-&gt;Release(task_setting_pointer);
+	task_setting_pointer = NULL;
+
+
+	//Next, config the trigger - defines when the task runs
+	
+	 
+	result = task_pointer-&gt;lpVtbl-&gt;get_Triggers(task_pointer, &amp;task_triggers_pointer); // get triggers pointer - which can handle all triggers of single task
+	if (FAILED(result)) {
+		wprintf(L&quot;failed to get task triggers pointer&quot;);
+		goto Cleanup;
+	}
+
+	
+	result = task_triggers_pointer-&gt;lpVtbl-&gt;Create(task_triggers_pointer, TASK_TRIGGER_LOGON, &amp;trigger_pointer); // create a logon trigger for the task 
+	if (FAILED(result)) {
+		wprintf(L&quot;failed to get trigger pointer&quot;);
+		goto Cleanup;
+	}
+	
+	task_triggers_pointer-&gt;lpVtbl-&gt;Release(task_triggers_pointer);
+	task_triggers_pointer = NULL;
+
+	// from now we have the pointer to task trigger, but it&#39;s just a general interface, so we need to do one more step is to get the pointer to use specific interface like 
+	// ILogonTrigger, IBootTrigger,...
+
+	result = trigger_pointer-&gt;lpVtbl-&gt;QueryInterface(trigger_pointer, &amp;IID_ILogonTrigger, (VOID**)&amp;logon_trigger_pointer); // get the Logon Triger 
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to get pointer to logon trigger&quot;);
+		goto Cleanup;
+	}
+	
+	trigger_pointer-&gt;lpVtbl-&gt;Release(trigger_pointer);
+	trigger_pointer = NULL;
+
+	// then we have the logon trigger pointer 
+	bstr_trigger_id = SysAllocString(L&quot;LogonTrigger&quot;); // define name for this trigger 
+	result = logon_trigger_pointer-&gt;lpVtbl-&gt;put_Id(logon_trigger_pointer, bstr_trigger_id); // set name for trigger 
+	SysFreeString(bstr_trigger_id);
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to set trigger name&quot;);
+		goto Cleanup;
+	}
+
+	result = logon_trigger_pointer-&gt;lpVtbl-&gt;put_Enabled(logon_trigger_pointer, VARIANT_TRUE); // then we enable this trigger 
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to enable trigger&quot;);
+		goto Cleanup;
+	}
+	
+	logon_trigger_pointer-&gt;lpVtbl-&gt;Release(logon_trigger_pointer);
+	logon_trigger_pointer = NULL;
+
+
+	// now next step we need to define what exacly action that the task has to be done
+	
+	
+	result = task_pointer-&gt;lpVtbl-&gt;get_Actions(task_pointer, &amp;task_actions_pointer); // now get the pointer to Actions - which handle all actions from a single task
+	if (FAILED(result)) {
+		wprintf(L&quot;failed to get task actions pointer&quot;);
+		goto Cleanup;
+	}
+
+	result = task_actions_pointer-&gt;lpVtbl-&gt;Create(task_actions_pointer, TASK_ACTION_EXEC, &amp;action_pointer); 	// create an exec action 
+	if (FAILED(result)) {
+		wprintf(L&quot;failed to get action pointer&quot;);
+		goto Cleanup;	 
+	}
+	
+	task_actions_pointer-&gt;lpVtbl-&gt;Release(task_actions_pointer);
+	task_actions_pointer = NULL;
+
+	result = action_pointer-&gt;lpVtbl-&gt;QueryInterface(action_pointer, &amp;IID_IExecAction, (VOID**)&amp;exec_action_pointer); 	// get exec action pointer 
+	if (FAILED(result)) {
+		wprintf(L&quot;failed to get exec action pointer&quot;);
+		goto Cleanup;
+	}
+
+	action_pointer-&gt;lpVtbl-&gt;Release(action_pointer);
+	action_pointer = NULL;
+
+
+	bstr_exec_path = SysAllocString(L&quot;C:\\Windows\\System32\\notepad.exe&quot;); 	// define path to execed
+	result = exec_action_pointer-&gt;lpVtbl-&gt;put_Path(exec_action_pointer, bstr_exec_path);	// put path into action
+	SysFreeString(bstr_exec_path);
+	if (FAILED(result)) {
+		wprintf(L&quot;failed to get exec action pointer&quot;);
+		goto Cleanup;
+	}
+	exec_action_pointer-&gt;lpVtbl-&gt;Release(exec_action_pointer);
+	exec_action_pointer = NULL;
+
+	//--- STEP 7: REGISTER TASK INTO TASK SCHEDULER  ---
+	bstr_task_name = SysAllocString(L&quot;OpenNotepadLogon&quot;); // define name for the task 
+	result = root_folder_pointer-&gt;lpVtbl-&gt;RegisterTaskDefinition( // after setting up for the task. Final step is create a register task in root folder 
+		task_folder_pointer,
+		bstr_task_name,
+		task_pointer,
+		TASK_CREATE_OR_UPDATE,
+		vEmpty,
+		vEmpty,
+		TASK_LOGON_INTERACTIVE_TOKEN,
+		vEmpty,
+		&amp;registerd_task_pointer
+	);
+	SysFreeString(bstr_task_name);
+	SysFreeString(bstr_task_folder);
+	if (FAILED(result)) {
+		wprintf(L&quot;Failed to create registed task 0x%x&quot;, result);
+		goto Cleanup;
+	}
+	wprintf(L&quot;Create task successfully\n&quot;);
+	registerd_task_pointer-&gt;lpVtbl-&gt;Release(registerd_task_pointer);
+	registerd_task_pointer = NULL;
+	task_folder_pointer-&gt;lpVtbl-&gt;Release(task_folder_pointer);
+	task_folder_pointer = NULL;
+	VariantClear(&amp;vEmpty);
+
+	system(&quot;pause&quot;);
+
+Cleanup:
+	if (service_pointer) service_pointer-&gt;lpVtbl-&gt;Release(service_pointer);
+
+	if (root_folder_pointer) root_folder_pointer-&gt;lpVtbl-&gt;Release(root_folder_pointer);
+	if (task_folder_pointer) task_folder_pointer-&gt;lpVtbl-&gt;Release(task_folder_pointer);
+
+	if (task_pointer) task_pointer-&gt;lpVtbl-&gt;Release(task_pointer);
+
+	if (task_registration_info_pointer) task_registration_info_pointer-&gt;lpVtbl-&gt;Release(task_registration_info_pointer);
+	if (task_principal_pointer) task_principal_pointer-&gt;lpVtbl-&gt;Release(task_principal_pointer);
+	if (task_setting_pointer) task_setting_pointer-&gt;lpVtbl-&gt;Release(task_setting_pointer);
+
+	if (task_triggers_pointer) task_triggers_pointer-&gt;lpVtbl-&gt;Release(task_triggers_pointer);
+	if (trigger_pointer) trigger_pointer-&gt;lpVtbl-&gt;Release(trigger_pointer);
+	if (logon_trigger_pointer) logon_trigger_pointer-&gt;lpVtbl-&gt;Release(logon_trigger_pointer);
+
+	if (task_actions_pointer) task_actions_pointer-&gt;lpVtbl-&gt;Release(task_actions_pointer);
+	if (action_pointer) action_pointer-&gt;lpVtbl-&gt;Release(action_pointer);
+	if (exec_action_pointer) exec_action_pointer-&gt;lpVtbl-&gt;Release(exec_action_pointer);
+
+	if (registerd_task_pointer) registerd_task_pointer-&gt;lpVtbl-&gt;Release(registerd_task_pointer);
+
+	VariantClear(&amp;vEmpty);
+	CoUninitialize();
+	return FAILED(result) ? 1 : 0;
+}</code></pre>
+          <p>Following pictures are present the result of this sample:</p>
+          <div class="image-container">
+            <img src="./img/result.png" alt="result" class="zoomImage" />
+          </div>
         </section>
       </article>
       <div id="modal" class="modal">

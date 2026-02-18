@@ -71,6 +71,7 @@
               </ul>
             </li>
             <li><a href="#practice" class="highlight">Practice</a></li>
+            <li><a href="#sum-up" class="highlight">Sum up</a></li>
           </ul>
         </section>
 
@@ -244,9 +245,9 @@
             </tr>
           </table>
           <p>
-            The next step is to explore what is
-            <span class="inline-highlight">Window Registry</span> and deeply
-            drive into 2 important keys which is
+            Next, we explore what the
+            <span class="inline-highlight">Window Registry</span> is and take a
+            closer look at two important hives:
             <span class="inline-highlight"> HKCU and HKLM </span>
           </p>
         </section>
@@ -254,7 +255,7 @@
         <!-- Windows Registry -->
         <section id="windows-registry">
           <p>
-            In definition
+            By definition
             <span class="title-highlight">The Windows Registry</span>
             is a hierarchical database used by the operating system to store
             low-level configuration settings, options, and information for both
@@ -567,7 +568,7 @@ HKLM
                 <p>
                   We will start with
                   <span class="inline-highlight">BCD00000000</span>. The "BCD"
-                  is stand for
+                  stands for
                   <span class="inline-highligh">Boot Configuration Data</span>
                   which I have mentioned early in
                   <a class="highlight" href="#boot-sequence">Boot Sequence</a>.
@@ -843,6 +844,25 @@ int main() {
         <div class="image-container">
           <img src="./img/result.png" alt="result" class="zoomImage" />
         </div>
+        <section>
+          <p class="title-highlight" id="sum-up">Sum up</p>
+          <ul>
+            <li>
+              In this post, we walked through the Windows boot sequence and
+              highlighted how registry hives are loaded and used across
+              different boot stages.
+            </li>
+            <li>
+              We also reviewed the registry’s hierarchical structure and the
+              purpose of key hives such as HKCR, HKCU, HKLM, and HKU.
+            </li>
+            <li>
+              Finally, we demonstrated a simple hands-on example by modifying a
+              user setting (mouse speed) through HKCU, showing how applications
+              and Windows components rely on the registry for configuration.
+            </li>
+          </ul>
+        </section>
       </article>
 
       <div id="modal" class="modal">

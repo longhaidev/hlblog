@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="post-status" content="active" />
+    <title>PEB Walk</title>
+    <link rel="stylesheet" href="../../../assets/style.min.css" />
+    <link
+      rel="icon"
+      href="../../../assets/favicon/duck.jpg"
+      type="image/jpeg"
+    />
+    <link rel="apple-touch-icon" href="../../../assets/favicon/duck.jpg" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
+  </head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <body>
+    <main class="container post-page" data-category="">
+      <a class="back-link" id="backLink" href="#">← All Posts</a>
+      <header class="post-header">
+        <h1 class="post-title">PEB Walk</h1>
+        <div class="post-meta">2025-12-25</div>
+      </header>
+      <article class="post-content">
+        <section id="fore-word">
+          <p>
+            <span class="highlight">Overview: </span> In this post, we explore
+            the Process Environment Block (PEB), its structure, purpose, and
+            internal layout within a running Windows process. We then take a
+            deeper look at the concept of PEB Walking — how it works and why it
+            is used. Finally, we demonstrate a sample of dynamic API resolution.
+            <br />
+            We will then take a deeper look at the concept of PEB Walking: how
+            it works, why it is used. Final is a sample of dynamic API
+            reslution.
+          </p>
+          <ul id="outline">
+            <li>
+              <a href="#PEB" class="highlight">PEB</a>
+              <ul id="PED-Breakdown">
+                <li>
+                  <a class="highlight" href="#structure">Internal Layout</a>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <a href="#PEB" class="highlight"
+                >Demonstrate PEB Walk and Dynamic call API</a
+              >
+              <ul>
+                <li>
+                  <a href="#access-peb" class="highlight"> Access PEB </a>
+                </li>
+                <li>
+                  <a href="#peb-walk" class="highlight"> PEB Walking </a>
+                </li>
+                <li>
+                  <a href="#dynamic-call" class="highlight"> Sample </a>
+                  <ul>
+                    <li>
+                      <a class="highlight" href="#source-code"> Source code </a>
+                    </li>
+                    <li>
+                      <a class="highlight" href="#result"> Result </a>
+                    </li>
+                    <li>
+                      <a class="highlight" href="#explain"> Understand code </a>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <a class="highlight" href="#sum-up">Sum up</a>
+            </li>
+          </ul>
+        </section>
+        <section id="#PEB">
+          <p>
+            <span class="title-highlight">Process Environment Block</span>
+            abbreviated PEB is a data structure in the
+            <span class="inline-highlight">Windows NT</span> operating system
+            family. <br />
+            Before continuing, it is important to understand at which stage the
+            PEB is created during process initialization.
+          </p>
+          <pre class="code-block">1. Program Start
+   - Calls CreateProcess to create notepad.exe (for example)  (Win32 API)
+   - The request is sent to the Windows OS
+
+2. Kernel Creates Process Object
+   - Windows creates an EPROCESS structure in kernel space
+   - This represents the new process internally
+
+3. Memory Initialization
+   - Virtual memory is created for the process
+   - The PEB is initialized in user space at this stage. --> <span class="highlight">PEB is created from this step</span>
+   - Required system DLLs are loaded (ntdll.dll, kernel32.dll)
+
+4. PE Loading
+   - The executable image (PE file) is mapped into memory
+
+5. Execution Begins
+   - The process entry point is called
+   - Program starts running</pre>
+          <p>
+            In simple terms, when a process is created, the Windows operating
+            system allocates a Process Environment Block (PEB) for that process.
+            It is created by the Windows kernel and contains fields that store
+            information such as loaded modules, process parameters, environment
+            variables, and more.
+          </p>
+        </section>
+        <section id="structure">
+          <p>
+            Next we will dive into
+            <span class="title-highlight">PEB Structure</span>. The picture as
+            following shows the PEB Structure documented from MSDN
+          </p>
+          <div class="image-container">
+            <img
+              src="./img/peb-structure.png"
+              alt="peb-struture"
+              class="zoomImage"
+            />
+          </div>
+          <p>
+            But some fields in this structure are marked as
+            <span id="reverse-field" class="title-highlight">Reserved</span>.
+            This is because Windows does not publicly document or expose the
+            purpose. These fields are intended strictly for internal user by the
+            Windows OS.
+            <br />
+            The full layout of PEB structure is shown in
+            <a
+              class="highlight"
+              href="https://www.vergiliusproject.com/kernels/x86/windows-10/1703/_PEB"
+              >vergiliusproject</a
+            >
+          </p>
+          <p>
+            From picture above. We can see the
+            <span class="inline-highlight">Ldr</span> member, which stand for
+            <span class="inline-highlight">Loader</span>. This contains a
+            pointer to
+            <span class="inline-highlight">PEB_LDR_DATA</span> structure, which
+            contains information about all loaded modules (like EXEs, DLLs) in
+            current process and also including the double-linked list
+            <a href="#module-list" class="highlight">InMemoryOrderModuleList</a>
+          </p>
+          <div class="image-container">
+            <img
+              src="./img/peb-ldr-data.png"
+              alt="peb-ldr-data"
+              class="zoomImage"
+            />
+          </div>
+          <p id="module-list">
+            <span class="inline-highlight">InMemoryOrderModuleList</span> is a
+            doubly linked list used to locate the base addresses of loaded DLLs.
+            Each entry in this list is represented by an
+            <span class="inline-highlight">LDR_DATA_TABLE_ENTRY</span>
+            which contains information about a loaded module.
+          </p>
+          <div class="image-container">
+            <img
+              src="./img/peb-ldr-data1.png"
+              alt="peb-ldr-data"
+              class="zoomImage"
+            />
+          </div>
+          That some important points about PEB and its structure. So in a simple
+          program, how do we access PEB?
+        </section>
+        <section id="PEB">
+          <p class="title-highlight">Sample of PEB Walk and Dynamic call API</p>
+          <p>
+            According to MSDN documentation, the PEB is located at a fixed
+            address within the process memory space.
+          </p>
+          <div class="image-container">
+            <img
+              src="./img/peb-address.png"
+              alt="peb-address"
+              class="zoomImage"
+            />
+          </div>
+          Following as pictures is sample of C to
+          <span id="access-peb" class="title-highlight"
+            >get the address of PEB</span
+          >
+          and also the result that compare 2 addresses 1 is get from
+          <span class="inline-highlight">WinDbg</span> and another is file
+          executed.
+          <pre><code class="language-c code">// get process environment block in gs 0x60 (64-bit x64)
+PPEB peb = (PPEB)__readgsqword(0x60); 
+// get process environment block in fs 0x30 (32-bit x86 )
+PPEB peb = (PPEB)__readfsdword(0x30);</code></pre>
+          <div class="image-container">
+            <img
+              src="./img/peb-access-sample.png"
+              alt="peb-access-sample"
+              class="zoomImage"
+            />
+          </div>
+          <p>
+            As we explored PEB early, PEB contains the information about loaded
+            modules and that have been mapped into process space. This
+            information can be leveraged to
+            <a class="highlight" href="dynamic-call"
+              >dynamically resolve API functions</a
+            >
+            by walking through the PEB structures.
+          </p>
+          <p>
+            In malware context, malware can extract the base addresses of these
+            DLLs, and then resolve the addresses of specific functions within
+            DLLs. For example, malware often looking for
+            <span class="inline-highlight">kernel32.dll</span>, which contains
+            two important functions
+          </p>
+          <ul>
+            <li>
+              <span class="inline-highlight">LoadLibraryA(libraryname)</span>->
+              loads a specified DLL into the process.
+            </li>
+            <li>
+              <span class="inline-highlight"
+                >GetProcAddress(hmodule, functionname)</span
+              >-> retrieves the address of an exported function from a module.
+            </li>
+          </ul>
+          <p>
+            From here we can understand why its called
+            <span id="peb-walk" class="title-highlight">PEB Walk</span>
+          </p>
+          <br />
+          <p>
+            Finally, we demonstrate how
+            <span class="inline-highlight">PEB walking</span> can be used to
+            dynamically resolve and invoke API functions at runtime. In this
+            example, MessageBoxA is called without being statically imported. We
+            then analyze the process to confirm that these functions are not
+            listed in the executable’s import table.
+          </p>
+          <p>
+            <span id="source-code" class="title-highlight">Full source</span>
+            code as below:
+          </p>
+          <pre><code class="language-c code">#include &lt;windows.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;winternl.h&gt;
+#pragma once
+
+typedef struct LDR_DATA_TABLE_ENTRY_CUSTOM {
+    PVOID Reserved1[2];
+    LIST_ENTRY InMemoryOrderLinks;
+    PVOID Reserved2[2];
+    PVOID DllBase;
+    PVOID Reserved3[2];
+    UNICODE_STRING FullDllName;
+    UNICODE_STRING BaseDllName;
+    PVOID Reserved5[3];
+#pragma warning(push)
+#pragma warning(disable: 4201)
+    union {
+        ULONG CheckSum;
+        PVOID Reserved6;
+    } DUMMYUNIONNAME;
+#pragma warning(pop)
+    ULONG TimeDateStamp;
+} LDR_DATA_TABLE_ENTRY_CUSTOM, *PLDR_DATA_TABLE_ENTRY_CUSTOM;
+
+typedef FARPROC(WINAPI* GETPROCADDRESS)(HMODULE, LPCSTR);
+typedef HMODULE(WINAPI* LOADLIBRARYA)(_In_opt_ LPCSTR);
+typedef int (WINAPI* MESSAGEBOXA)(
+    _In_opt_ HWND    hWnd,
+    _In_opt_ LPCSTR  lpText,
+    _In_opt_ LPCSTR  lpCaption,
+    _In_     UINT    uType
+);
+
+PVOID get_kernel32_base() {
+    PPEB peb = (PPEB)__readgsqword(0x60); // get PEB address in GS:[0X60]
+    PPEB_LDR_DATA ldr = peb-&gt;Ldr;
+    PLIST_ENTRY module_list = &amp;ldr-&gt;InMemoryOrderModuleList;
+    PLIST_ENTRY current_module = module_list-&gt;Flink;
+
+    // walking through PEB and then get the address of DLL, which is kernel32.dll
+    while (current_module != module_list) {
+        PLDR_DATA_TABLE_ENTRY_CUSTOM module_entry =
+            CONTAINING_RECORD(current_module, LDR_DATA_TABLE_ENTRY_CUSTOM, InMemoryOrderLinks);
+
+        if (module_entry-&gt;BaseDllName.Buffer != NULL) {
+            wchar_t* module_name = (wchar_t*)module_entry-&gt;BaseDllName.Buffer;
+
+            if (_wcsicmp(module_name, L"kernel32.dll") == 0) {
+                return module_entry-&gt;DllBase;
+            }
+        }
+        current_module = current_module-&gt;Flink;
+    }
+    return NULL;
+}
+
+FARPROC get_proc_address(HMODULE handle_module, LPCSTR proc_name) {
+    LPBYTE base_address = NULL;
+    // parsing PE header
+    PIMAGE_DOS_HEADER dos_header_pointer = NULL;
+    PIMAGE_NT_HEADERS nt_header_pointer = NULL;
+
+    PIMAGE_OPTIONAL_HEADER optional_header_pointer = NULL;
+    PIMAGE_EXPORT_DIRECTORY export_directory_pointer = NULL;
+
+    DWORD export_rva = 0;
+    // function
+    DWORD number_of_func_name = 0;
+    PDWORD address_of_names_pointer = NULL;
+    PDWORD address_of_func_pointer = NULL;
+    PWORD address_of_name_ordinal_pointer = NULL;
+
+    DWORD checkTargetFn = 0;
+    DWORD func_index = 0;
+
+    // walking through PE format
+    base_address = (LPBYTE)handle_module;
+    dos_header_pointer = (PIMAGE_DOS_HEADER)base_address;
+    nt_header_pointer = (PIMAGE_NT_HEADERS)(base_address + dos_header_pointer-&gt;e_lfanew);
+    optional_header_pointer = &amp;nt_header_pointer-&gt;OptionalHeader;
+
+    export_rva = optional_header_pointer-&gt;DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
+    export_directory_pointer = (PIMAGE_EXPORT_DIRECTORY)(base_address + export_rva);
+
+    number_of_func_name = export_directory_pointer-&gt;NumberOfNames;
+    address_of_names_pointer = (PDWORD)(export_directory_pointer-&gt;AddressOfNames + base_address);
+    address_of_func_pointer = (PDWORD)(export_directory_pointer-&gt;AddressOfFunctions + base_address);
+    address_of_name_ordinal_pointer = (PWORD)(export_directory_pointer-&gt;AddressOfNameOrdinals + base_address);
+
+    for (DWORD i = 0; i &lt; number_of_func_name; i++) {
+        char* functionName = (char*)(base_address + address_of_names_pointer[i]);
+        if (strcmp(functionName, proc_name) == 0) {
+            func_index = address_of_name_ordinal_pointer[i];
+            FARPROC pGetProcAddress = (FARPROC)(base_address + address_of_func_pointer[func_index]);
+            //printf("get proc address at %p", pGetProcAddress); -&gt; We can check its function address in CFF Explorer
+            return pGetProcAddress;
+        }
+    }
+    return NULL;
+}
+
+int main() {
+    GETPROCADDRESS get_proc_address_pointer = NULL;
+    MESSAGEBOXA message_box_pointer = NULL;
+    LOADLIBRARYA load_library_pointer = NULL;
+    PVOID kernel32_base_pointer = get_kernel32_base();
+    PVOID user32_base_pointer = NULL;
+
+    int main() {
+	GETPROCADDRESS get_proc_address_pointer = NULL;
+	MESSAGEBOXA message_box_pointer = NULL;
+	LOADLIBRARYA load_library_pointer = NULL;
+	PVOID kernel32_base_pointer = get_kernel32_base();
+	PVOID user32_base_pointer = NULL;
+
+	if (kernel32_base_pointer) {
+		// get the "GetProcAddress" and "LoadLibraryA" address then use as a function pointer type that we have defined 
+		get_proc_address_pointer = (GETPROCADDRESS)get_proc_address(kernel32_base_pointer, "GetProcAddress");
+		load_library_pointer = (LOADLIBRARYA)get_proc_address(kernel32_base_pointer, "LoadLibraryA");
+		// load the user32.dll, which contains MessageBoxA function address 
+		user32_base_pointer = load_library_pointer("user32.dll");
+		if (user32_base_pointer) {
+			message_box_pointer = (MESSAGEBOXA)get_proc_address(user32_base_pointer, "MessageBoxA");
+		} else return 1;
+		message_box_pointer(NULL, "this is PEB walk, and you are not going to see those functions in CFF Explorer", "Result", MB_OK);
+	}
+}</code></pre>
+        </section>
+        <section id="result">
+          <p class="title-highlight">Result</p>
+          <span>as following picture:</span>
+          <div class="image-container">
+            <img
+              src="./img/sample-result.png"
+              alt="sample-result"
+              class="zoomImage"
+            />
+          </div>
+        </section>
+        <section id="explain">
+          <p>
+            Let's just breakdown and
+            <span class="title-highlight">understand the code</span>, compare
+            with the PEB structure that we have explored.
+          </p>
+          <p>
+            First step we define the necessary PEB Structures that are required
+            which is
+            <span class="inline-highlight">_LDR_DATA_TABLE_ENTRY_CUSTOM</span>.
+            <a class="highlight" href="#reverse-field"
+              >Why I have to make a custom structure?</a
+            >
+          </p>
+          <pre><code class="language-c code">typedef struct LDR_DATA_TABLE_ENTRY_CUSTOM {
+	PVOID Reserved1[2];
+	LIST_ENTRY InMemoryOrderLinks;
+	PVOID Reserved2[2];
+	PVOID DllBase;
+	PVOID Reserved3[2];
+	UNICODE_STRING FullDllName;
+	UNICODE_STRING BaseDllName;
+	PVOID Reserved5[3];
+#pragma warning(push)
+#pragma warning(disable: 4201)
+	union {
+		ULONG CheckSum;
+		PVOID Reserved6;
+	} DUMMYUNIONNAME;
+#pragma warning(pop)
+	ULONG TimeDateStamp;
+} LDR_DATA_TABLE_ENTRY_CUSTOM, * PLDR_DATA_TABLE_ENTRY_CUSTOM;</code></pre>
+          <p>
+            Once we obtain the function address, how can we invoke it?. In this
+            step we will define function pointer type for the Windows API so
+            that we can use it
+          </p>
+          <pre><code class="language-c code">typedef FARPROC(WINAPI* GETPROCADDRESS)(HMODULE, LPCSTR);
+typedef HMODULE(WINAPI* LOADLIBRARYA)(_In_opt_ LPCSTR);
+typedef int (WINAPI* MESSAGEBOXA)(
+	_In_opt_ HWND    hWnd,
+	_In_opt_ LPCSTR  lpText,
+	_In_opt_ LPCSTR  lpCaption,
+	_In_	 UINT    uType
+	);
+</code></pre>
+          <p>
+            Then, going through PEB structure to get the loaded module, which is
+            <span class="inline-highligh">kernel32.dll</span>
+          </p>
+          <pre><code class="language-c code">PVOID get_kernel32_base() {
+    PPEB peb = (PPEB)__readgsqword(0x60); // get PEB address in GS:[0X60]
+    PPEB_LDR_DATA ldr = peb-&gt;Ldr;
+    PLIST_ENTRY module_list = &amp;ldr-&gt;InMemoryOrderModuleList;
+    PLIST_ENTRY current_module = module_list-&gt;Flink;
+
+    // walking through PEB and then get the address of DLL, which is kernel32.dll
+    while (current_module != module_list) {
+        PLDR_DATA_TABLE_ENTRY_CUSTOM module_entry =
+            CONTAINING_RECORD(current_module, LDR_DATA_TABLE_ENTRY_CUSTOM, InMemoryOrderLinks);
+        if (module_entry-&gt;BaseDllName.Buffer != NULL) {
+            wchar_t* module_name = (wchar_t*)module_entry-&gt;BaseDllName.Buffer;
+            if (_wcsicmp(module_name, L"kernel32.dll") == 0) {
+                return module_entry-&gt;DllBase;
+            }
+        }
+        current_module = current_module-&gt;Flink;
+    }
+    return NULL;
+}</code></pre>
+          <p>
+            After get the
+            <span class="inline-highligh">kernel32.dll</span> address, then we
+            make a function that resolves the address of an exported function
+            from a module
+          </p>
+          <pre><code class="language-c code">FARPROC get_proc_address(HMODULE handle_module, LPCSTR proc_name) {
+    LPBYTE base_address = NULL;
+    // parsing PE header
+    PIMAGE_DOS_HEADER dos_header_pointer = NULL;
+    PIMAGE_NT_HEADERS nt_header_pointer = NULL;
+
+    PIMAGE_OPTIONAL_HEADER optional_header_pointer = NULL;
+    PIMAGE_EXPORT_DIRECTORY export_directory_pointer = NULL;
+
+    DWORD export_rva = 0;
+    // function
+    DWORD number_of_func_name = 0;
+    PDWORD address_of_names_pointer = NULL;
+    PDWORD address_of_func_pointer = NULL;
+    PWORD address_of_name_ordinal_pointer = NULL;
+
+    DWORD checkTargetFn = 0;
+    DWORD func_index = 0;
+
+    // walking through PE format
+    base_address = (LPBYTE)handle_module;
+    dos_header_pointer = (PIMAGE_DOS_HEADER)base_address;
+    nt_header_pointer = (PIMAGE_NT_HEADERS)(base_address + dos_header_pointer-&gt;e_lfanew);
+    optional_header_pointer = &amp;nt_header_pointer-&gt;OptionalHeader;
+
+    export_rva = optional_header_pointer-&gt;DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
+    export_directory_pointer = (PIMAGE_EXPORT_DIRECTORY)(base_address + export_rva);
+
+    number_of_func_name = export_directory_pointer-&gt;NumberOfNames;
+    address_of_names_pointer = (PDWORD)(export_directory_pointer-&gt;AddressOfNames + base_address);
+    address_of_func_pointer = (PDWORD)(export_directory_pointer-&gt;AddressOfFunctions + base_address);
+    address_of_name_ordinal_pointer = (PWORD)(export_directory_pointer-&gt;AddressOfNameOrdinals + base_address);
+
+    for (DWORD i = 0; i &lt; number_of_func_name; i++) {
+        char* functionName = (char*)(base_address + address_of_names_pointer[i]);
+        if (strcmp(functionName, proc_name) == 0) {
+            func_index = address_of_name_ordinal_pointer[i];
+            FARPROC pGetProcAddress = (FARPROC)(base_address + address_of_func_pointer[func_index]);
+            //printf("get proc address at %p", pGetProcAddress); -&gt; We can check its function address in CFF Explorer
+            return pGetProcAddress;
+        }
+    }
+    return NULL;
+}</code></pre>
+          <p>
+            Final step, the flow is
+            <span class="inline-highlight">get kernel32.dll address</span>→<span
+              class="inline-highlight"
+              >get functions address (GetProcAddress then use it to get
+              LoadLibraryA)</span
+            >→<span class="inline-highlight"
+              >get user32.dll by using LoadLibraryA</span
+            >→<span class="inline-highlight"
+              >load user32.dll then get the MessageBoxA address</span
+            >
+          </p>
+          <pre><code class="language-c code">int main() {
+	GETPROCADDRESS get_proc_address_pointer = NULL;
+	MESSAGEBOXA message_box_pointer = NULL;
+	LOADLIBRARYA load_library_pointer = NULL;
+	PVOID kernel32_base_pointer = get_kernel32_base();
+	PVOID user32_base_pointer = NULL;
+
+	if (kernel32_base_pointer) {
+		// get the "GetProcAddress" and "LoadLibraryA" address then use as a function pointer type that we have defined 
+		get_proc_address_pointer = (GETPROCADDRESS)get_proc_address(kernel32_base_pointer, "GetProcAddress");
+		load_library_pointer = (LOADLIBRARYA)get_proc_address(kernel32_base_pointer, "LoadLibraryA");
+		// load the user32.dll, which contains MessageBoxA function address 
+		user32_base_pointer = load_library_pointer("user32.dll");
+		if (user32_base_pointer) {
+			message_box_pointer = (MESSAGEBOXA)get_proc_address(user32_base_pointer, "MessageBoxA");
+		} else return 1;
+		message_box_pointer(NULL, "this is PEB walk, and you are not going to see those functions in CFF Explorer", "Result", MB_OK);
+	}
+}</code></pre>
+        </section>
+        <section>
+          Finally, we verify whether any of these functions are statically
+          imported in the PE file.
+          <div class="image-container">
+            <img src="./img/cff.png" alt="cff" class="zoomImage" />
+          </div>
+          <p>
+            As shown in the image above, there is no module named user32.dll
+            imported in the PE file, and MessageBoxA does not appear in the
+            Import Address Table either.
+          </p>
+        </section>
+        <section>
+          <p class="title-highlight" id="sum-up">Sum up</p>
+          <ul>
+            <li>
+              PEB walking demonstrates how a program can bypass the traditional
+              import mechanism and dynamically resolve APIs at runtime.
+            </li>
+            <li>
+              By accessing the PEB, enumerating loaded modules, and manually
+              parsing the Export Address Table, we eliminate the need for static
+              imports such as user32.dll or MessageBoxA.
+            </li>
+            <li>
+              This technique is frequently observed in malware and shellcode to
+              evade static analysis and reduce forensic artifacts.
+            </li>
+          </ul>
+        </section>
+      </article>
+      <div id="modal" class="modal">
+        <span id="closeModal" class="close-btn">&times;</span>
+      </div>
+    </main>
+    <script src="../../../assets/main.js" defer></script>
+  </body>
+</html>

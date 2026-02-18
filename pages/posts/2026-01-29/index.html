@@ -23,19 +23,20 @@
     <main class="container post-page" data-category="">
       <a class="back-link" id="backLink" href="#">← All Posts</a>
       <header class="post-header">
-        <h1 class="post-title">Task Scheduler in Window</h1>
+        <h1 class="post-title">Task Scheduler in Windows</h1>
         <div class="post-meta">2026-01-29</div>
       </header>
       <article class="post-content">
         <section id="fore-word">
           <p>
             <span class="title-highlight">Overview:</span>
-            In this post we will discuss about Task Scheduler, main parts of the
-            Task, the relation between Task Scheduler and
+            In this post, we discuss the Windows Task Scheduler, the core
+            components of a task, and how Task Scheduler relates to the
             <a href="../2026-01-19/index.html" class="highlight"
-              >Window Registry</a
-            >. How COM (Component Object Model) controls Task Scheduler with
-            interfaces. Last is some practice in work.
+              >Windows Registry</a
+            >. We also examine how the COM (Component Object Model) API controls
+            Task Scheduler through its interfaces. Finally, we build a practical
+            example using COM to create a logon-triggered task.
           </p>
           <ul id="outline">
             <li>
@@ -67,10 +68,10 @@
         </section>
         <section id="task-scheduler" class="title-highligh">
           <p>
-            <span class="title-highlight">Task Scheduler</span> is a window
-            service provided automated execution framwork that lets user or
-            system automatically run program when certain condition are met.
-            Which based on:
+            <span class="title-highlight">Task Scheduler</span> is a Windows
+            service that provides an automated execution framework, allowing the
+            system or users to run programs based on specific triggers such as
+            time, events, system state, logon, or boot.
           </p>
           <ul id="AEF">
             <li>Time-based scheduling</li>
@@ -92,8 +93,8 @@
           security contexts
           <br />
           <p>
-            So how does the
-            <span class="inline-highlight">Task Scheduler</span> actually works?
+            So how does
+            <span class="inline-highlight">Task Scheduler</span> actually work?
           </p>
 
           <p>
@@ -128,8 +129,8 @@ Task
  ├── Actions - Define what the task runs 
  └── Settings - Control runtime behavior like StartWhenAvailable, AllowDemandStart, StopIfGoingOnBatteries,...
           </pre>
-          So, after task is created. How can Windows reads and executes the
-          task? In the next section, we will jump to the relation between
+          So, after task is created. How can Windows read and execute the task?
+          In the next section, we will jump to the relation between
           <span class="title-highlight" id="relation-with-WR">
             Window Registry and Task Scheduler</span
           >
@@ -147,7 +148,7 @@ Task
             >. And also the GUID created and stored in
             <span class="inline-highlight"
               >HKLM\SOFTWARE\Microsoft\Windows
-              NT\CurrentVersion\Schedule\TaskCache\Task
+              NT\CurrentVersion\Schedule\TaskCache\Tasks
             </span>
           </p>
           <div class="image-container">
@@ -214,7 +215,7 @@ Task
             </tr>
             <tr>
               <td style="width: 50%">ITaskDefinition</td>
-              <td style="width: 50%">Task Contruction - Create a new task</td>
+              <td style="width: 50%">Construction - Create a new task</td>
             </tr>
             <tr>
               <td style="width: 50%">IRegistrationInfo</td>
@@ -258,7 +259,8 @@ Task
             <tr>
               <td style="width: 50%">IRegisteredTask</td>
               <td style="width: 50%">
-                Stand for a existed task in Task Scheduler
+                IRegisteredTask represents an existing registered task in Task
+                Scheduler.
               </td>
             </tr>
           </table>

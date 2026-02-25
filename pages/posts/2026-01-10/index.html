@@ -23,6 +23,7 @@
     />
   </head>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/x86asm.min.js"></script>
 
   <body>
     <main class="container post-page" data-category="">
@@ -34,8 +35,1028 @@
       <article class="post-content">
         <section id="fore-word">
           <p>
-            <span class="highlight">Overview:</span> Recap important point and
-            some excersice in "Practical Reverse Engingeering"
+            <span class="highlight">Overview:</span> In this post, I will
+            summarize the key points and provide a few practice exercises
+            related to the first chapter of "Practical Reverse Engineering"
+          </p>
+        </section>
+        <section id="outline">
+          <ul>
+            <li>
+              <a class="highlight" href="#chapter-overview">Chapter Overview</a>
+            </li>
+            <li>
+              <a class="highlight" href="#register-set-data-types">
+                Register Set & Data Type
+              </a>
+            </li>
+            <li>
+              <a class="highlight" href="#instruction-set"> Instruction Set </a>
+              <ul>
+                <li>
+                  <a href="#data-movement" class="highlight"> Data Movement </a>
+                </li>
+                <li>
+                  <a href="#arithmetic-operations" class="highlight">
+                    Arithmetic Operation
+                  </a>
+                </li>
+                <li>
+                  <a href="#stack-and-function" class="highlight">
+                    Stack Operations and Function Invocation</a
+                  >
+                </li>
+                <li>
+                  <a href="#control-flow" class="highlight"> Control Flow</a>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <a class="highlight" href="#x64">x64</a>
+              <ul>
+                <li>
+                  <a class="highlight" href="#x64-register-set-data-types">
+                    Register Set & Data Type
+                  </a>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <a href="#sumup" class="highlight">Sumup</a>
+            </li>
+          </ul>
+        </section>
+        <section id="chapter-overview">
+          <p>
+            Chapter I discusses
+            <span class="title-highlight">x86 & x64 Architecture</span> in
+            protected mode. However, it mainly focuses on x86 architecture. The
+            64-bit extension of the architecture is called x64 or x86-64. We
+            will discuss x64 after covering x86.<br />
+          </p>
+        </section>
+        <!-- Register and Data Types -->
+        <section>
+          <section>
+            <p class="title-highlight" id="register-set-data-types">
+              Register Set
+            </p>
+            <p>
+              When operating in protected mode, the x86 architecture has eight
+              <span class="inline-highlight">
+                32-bit general-purpose registers (GPRs)
+              </span>
+              and x64 extends x86's eight general-purpose registers to be 64-bit
+              and adds eight new 64-bit registers. The
+              <span class="inline-highlight">64-bit registers</span> have names
+              that begin with <span class="inline-highlight">"R"</span>. For
+              example, the 64-bit extension of eax is called
+              <span class="inline-highlight">RAX</span>. The newly added
+              registers are named
+              <span class="inline-highlight">R8</span> through
+              <span class="inline-highlight">R15</span>. Presented in the table
+              below:
+            </p>
+            <br />
+            In Windows x64 calling convention, RCX/RDX/R8/R9 hold the first four
+            integer/pointer arguments.
+            <code class="code-block">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>64-bit Register</th>
+                    <th>32-bit Register</th>
+                    <th>Full name</th>
+                    <th>Main purpose</th>
+                    <th>Calling convention</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <!-- Instruction Pointer -->
+                  <tr class="group-separator">
+                    <td rowspan="1"><strong>Instruction Pointer</strong></td>
+                    <td>RIP</td>
+                    <td>EIP</td>
+                    <td>Instruction Pointer</td>
+                    <td>Holds next instruction address</td>
+                    <td></td>
+                  </tr>
+                  <!-- GPR -->
+                  <tr>
+                    <td rowspan="11">
+                      <strong>General Purpose Register - GPR</strong>
+                    </td>
+                    <td>RBX</td>
+                    <td>EBX</td>
+                    <td>General</td>
+                    <td>Used as temp, storing temp data or restored address</td>
+                    <td>
+                      <a class="highlight" href="#callee-saved">Callee-saved</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>RAX</td>
+                    <td>EAX</td>
+                    <td>Accumulator</td>
+                    <td>Used for arithmetic operators (+, -, *, /)</td>
+                    <td>Used to hold the return value of function</td>
+                  </tr>
+                  <tr>
+                    <td>RCX</td>
+                    <td>ECX</td>
+                    <td>Counter</td>
+                    <td>Used to count index in loop, bit shifting</td>
+                    <td>1st argument of a function</td>
+                  </tr>
+                  <tr>
+                    <td>RDX</td>
+                    <td>EDX</td>
+                    <td>Data</td>
+                    <td>Used to store large result of * and / operators</td>
+                    <td>2nd Argument in function</td>
+                  </tr>
+                  <tr>
+                    <td>R8</td>
+                    <td>R8D</td>
+                    <td>General</td>
+                    <td>Same with RAX, RCX used when both are busy</td>
+                    <td>3rd Argument in function</td>
+                  </tr>
+                  <tr>
+                    <td>R9</td>
+                    <td>R9D</td>
+                    <td>General</td>
+                    <td>Similar to R8</td>
+                    <td>4th Argument in function</td>
+                  </tr>
+                  <tr>
+                    <td>RSI</td>
+                    <td>ESI</td>
+                    <td>Source index</td>
+                    <td>
+                      Used as the source pointer to string or memory operations
+                    </td>
+                    <td>
+                      <a class="highlight" href="#callee-saved">Callee-saved</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>RDI</td>
+                    <td>EDI</td>
+                    <td>Destination index</td>
+                    <td>
+                      Used as the destination pointer in string and memory
+                      operations
+                    </td>
+                    <td>
+                      <a class="highlight" href="#callee-saved">Callee-saved</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>RBP</td>
+                    <td>EBP</td>
+                    <td>Base pointer</td>
+                    <td>
+                      Used as frame pointer, pointing to the bottom of the stack
+                    </td>
+                    <td>
+                      <a class="highlight" href="#callee-saved">Callee-saved</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>RSP</td>
+                    <td>ESP</td>
+                    <td>Stack pointer</td>
+                    <td>
+                      Used as stack pointer, pointing to the top of the stack
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>R10-R15</td>
+                    <td>R10D-R15D</td>
+                    <td>General</td>
+                    <td>Used as temp, storing temp data or restored address</td>
+                    <td></td>
+                  </tr>
+                  <!-- Special -->
+                  <tr>
+                    <td rowspan="1"><strong>Special</strong></td>
+                    <td>RFLAGS</td>
+                    <td>EFLAGS</td>
+                    <td>Status flags</td>
+                    <td>
+                      Stores status flags from arithmetic and logical operations
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </code>
+            <p>
+              <span id="callee-saved" class="inline-highlight"
+                >Callee-saved</span
+              >: is a register that must be preserved by the called function
+              <br />
+              You can think of it like this: If you borrow someone’s book
+              (register), you must return it in the same condition.
+            </p>
+
+            <p>
+              In this table, I will briefly introduce the registers, including
+              their names and general purposes. If you want a deeper
+              understanding of how they work and interact with each other,
+              please check out my post on
+              <a href="../2025-12-30/index.html" class="highlight"
+                >Register Set</a
+              >
+            </p>
+            <br />
+          </section>
+        </section>
+        <!-- Instruction Set -->
+        <section>
+          <p>
+            Next, we will explore the
+            <span id="instruction-set" class="title-highlight"
+              >Instruction set</span
+            >
+            , which consists of all the operations supported by the CPU. It
+            defines the machine code instructions that a processor understands,
+            ranging from 16-bit, 32-bit (IA-32), to 64-bit (x86-64) operations.
+            <br />
+            The x86 instruction set is massive, covering thousands of potential
+            commands, but they generally fall into the following categories,
+            which we will explore in the next section:
+          </p>
+          <ul>
+            <li>Data Movement</li>
+            <li>Arithmetic</li>
+            <li>Stack Operations and Function Invocation</li>
+            <li>Logical</li>
+            <li>Control Flow</li>
+          </ul>
+          <!-- Data Movement -->
+          <section>
+            <p>
+              <span id="data-movement" class="title-highlight"
+                >Data Movement</span
+              >. The most common instruction for moving data
+              <span class="inline-highlight"
+                >from register or immediate to register</span
+              >
+              is <span class="inline-highlight">MOV</span>. For example:
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: BE 3F 00 0F 00   mov esi, 0F003Fh ; set ESI = 0xF003 // this is immediate to register
+02: 8B F1            mov esi, ecx     ; set ESI = ECX // this is register to register</code></pre>
+            <p>
+              Next is
+              <span class="inline-highlight">moving from/to memory</span>. x86
+              uses brackets <span class="inline-highlight">[ ]</span> to
+              indicate memory access. The only exception is
+              <a class="highlight" href="#lea">LEA</a>, which is also uses
+              <span class="inline-highlight">[ ]</span> but does not access the
+              memory. See the example below
+            </p>
+            <pre class="code-block"><code class="language-x86asm">
+01: C7 00 01 00 00 00  mov dword ptr [eax], 1   ; set memory at address EAX to 1
+02: 8B 08              mov ecx, [eax]           ; set ECX to value at address EAX
+03: 89 18              mov [eax], ebx           ; set memory at address EAX to EBX
+04: 89 46 34           mov [esi+34h], eax       ; set memory at (ESI+34) to EAX
+05: 8B 46 34           mov eax, [esi+34h]       ; set EAX to value at (ESI+34)
+06: 8B 14 01           mov edx, [ecx+eax]       ; set EDX to value at (ECX+EAX)
+          </code></pre>
+            <p>
+              *<span id="lea" class="title-highlight">LEA</span> - Load
+              Effective Address, which is used to calculate an address and load
+              it into a register.
+            </p>
+            <br />
+            <p>
+              The next memory access form is commonly used to
+              <span class="inline-highlight">access array-type objects</span>.
+              The format as follow
+              <span class="inline-highlight">[Base + Index * scale]</span>. See
+              those example:
+            </p>
+            <pre class="code-block"><code class="language-x86asm">
+01: loop_start:
+02: 8B 47 04   mov eax, [edi+4]        ; eax now stores the value at edi+offset 4
+03: 8B 04 98   mov eax, [eax+ebx*4]    ; eax now stores value at [eax+ebx*4], ebx is used as the index and 4 is scale factor
+04: 85 C0      test eax, eax           ; this instruction sets EFLAGS we will talk about it later.
+                                       ; Instruction updates the status flags without modifying EAX. It is commonly used to check whether EAX is zero.
+...
+05: 74 14      jz short loc_7F627F     ; jump if zero, CPU jumps to this address if the instruction test eax, eax set the ZF = 1;
+06: loc_7F627F:
+07: 43         inc ebx                 ; + ebx which is index of the array
+08: 3B 1F      cmp ebx, [edi]          ; compare the index with value at offset 0 
+09: 7C DD      jl short loop_start     ; jump if less than 
+          </code></pre>
+            <p>
+              Next is the instructions are typically used to implement
+              <span class="inline-highlight">string or memory copy</span>
+              when the length is known at the compile time.
+              <br />
+              In x86, <span class="inline-highlight">"String"</span> refers to a
+              <span class="inline-highlight"
+                >sequence of data stored in memory.</span
+              >
+            </p>
+            <div class="image-container">
+              <img
+                src="./img/string-in-x86.webp"
+                alt="string-in-x86"
+                class="zoomImage"
+              />
+            </div>
+            <p>
+              The <span class="inline-highlight">0x0</span> at the end is the
+              NULL byte which is <span class="inline-highlight">"\0"</span>
+            </p>
+            <br />
+            <p>
+              Besides,
+              <span class="inline-highlight">MOVSB/MOVSW/MOVSD</span> are
+              instructions to move data with 1-, 2-, or 4-byte granularity
+              between two memory addresses. See the example below:
+            </p>
+            <pre class="code-block"><code class="language-x86asm">
+01: BE 28 B5 41 00  mov esi, offset _RamdiskBootDiskGuid ; ESI = pointer to RamdiskBootDiskGuid
+02: 8D BD 40 FF FF+ lea edi, [ebp-0C0h]                  ; EDI is an address somewhere on the stack
+03: A5              movsd                                ; copies 4 bytes from ESI to EDI; increments both pointers by 4
+04: A5              movsd                                ; same as above
+05: A5              movsd                                ; same as above
+06: A5              movsd                                ; same as above            
+          </code></pre>
+            <p>
+              <span class="inline-highlight">Explaination</span> <br />
+              <span class="inline-highlight">ESI</span> is the source pointer
+              stores the RamdiskBootDiskGuid address
+              <br />
+              The instruction in line 2,
+              <span class="inline-highligt">LEA</span> used to load the address,
+              which is <span class="inline-highlight">EBP + 0C</span> offset to
+              <span class="inline-highlight">EDI</span>.
+              <span class="inline-highlight">EDI</span> is the destination
+              pointer
+              <br />
+              The main purpose of these instructions is to
+              <span class="inline-highlight"
+                >copy data from RamdiskBootDiskGuid to EBP +0C offset</span
+              >
+              , which is local stack buffer
+            </p>
+            <p>
+              In other words, line 3-5 can be replaced with
+              <span class="inline-highlight">rep movsd</span>. The
+              <span class="inline-highlight">rep</span> instruction works like
+              this
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">while (ECX != 0) {
+    movsd
+    ECX--
+}</code></pre>
+            <p>
+              Example of
+              <span class="inline-highlight">the rep instruction</span>
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">1: 6A 08           push 8 ; push 8 on the stack 
+02: ...
+03: 59             pop ecx ; pop the stack. Basically sets ECX to 8.
+04: ...
+05: BE 00 44 61 00 mov esi, offset _KeServiceDescriptorTable
+06: BF C0 43 61 00 mov edi, offset _KeServiceDescriptorTableShadow
+07: F3 A5          rep movsd ; copy 32 bytes (movsd repeated 8 times until ECX = 0 )
+; from this we can deduce that whatever these two objects are, they are
+; likely to be 32 bytes in size.</code></pre>
+            <br />
+            Another class of data movement instructions with implicit source and
+            destination includes the
+            <span class="inline-highlight">SCAS</span> and
+            <span class="inline-highlight">STOS</span> instructions
+            <br />
+            Mentioned early that a string is just a sequence of contiguous
+            bytes. Its length is determined by scanning until a NULL terminator
+            is encountered.
+            <br />
+            The <span class="inline-highlight">SCAS</span> instruction is
+            commonly used in
+            <span class="inline-highlight">strlen()</span> implementations to
+            perform this operation. The idea is compare a value in the
+            accumulator register with data in memory. Example below:
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: 30 C0 xor al, al       ; set AL to 0 (NUL byte).
+02: 89 FB mov ebx, edi     ; save the original pointer to the string (first address of string)
+03: F2 AE repne scasb      ; compare value in AL with data in memory (EDI), increase EDI if DF = 0 -> move to next char
+04: 29 DF sub edi, ebx     ; after that instruction in this line will make a minus between first address of string (EBX) and NULL Byte (EDI) which gives us the length of the string</code></pre>
+            <p>
+              <span class="inline-highlight">STOS</span> (Store String)
+              <span class="inline-highlight">writes</span> the accumulator value
+              to the
+              <span class="inline-highlight">destination pointer - EDI</span>
+              and automatically advances the pointer, often used in memory
+              initialization routines. This is example of how it works
+            </p>
+            <pre class="code-block"><code class="language-x86asm"
+>05: AB   stosd ; write double word (4 bytes) to edi
+;------- can be rewritten like this 
+05:      mov [edi], eax
+05:      add edi, 4 ; add if DF = 0. sub if DF = 1
+</code></pre>
+            <p>
+              <span class="inline-highlight">LODS</span> is another instruction
+              from the same family. It
+              <span class="inline-highlight">reads</span> a 1-, 2-, or 4-byte
+              value from <span class="inline-highlight">ESI</span> and stores it
+              in <span class="inline-highlight">AL, AX, or EAX</span>. It
+              basically does
+            </p>
+            <pre class="code-block"><code class="language-x86asm">
+03: AD    lodsd ; load string DOUBLE WORD - 4 bytes
+04: F7 D0 not eax
+05: AB    stosd
+; ------- can be rewritten like this
+03:       mov eax, [esi]
+03:       add esi, 4 ; add if DF = 0. sub if DF = 1
+04:       not eax
+05:       mov [edi], eax
+05:       add edi, 4 ; add if DF = 0. sub if DF = 1
+            </code></pre>
+            <br />
+            <p>
+              After we've explored the
+              <span class="inline-highlight">string instructions</span> there is
+              also <span class="inline-highlight">the exercise</span> to
+              practice with. Displayed as below:
+            </p>
+            <div class="image-container">
+              <img
+                class="zoomImage"
+                src="./img/string-instruction-exercise.png"
+                alt=""
+              />
+            </div>
+            <p>
+              <span class="inline-highlight"
+                >Instruction breakdown as following</span
+              >
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: 8B 7D 08  mov edi, [ebp+8]   ; EDI stores address of first argument of the function
+02: 8B D7     mov edx, edi       ; EDX stores backup pointer to first arg
+03: 33 C0     xor eax, eax       ; set EAX = 0 so AL also = 0, this will be the NULL Byte
+04: 83 C9 FF  or ecx, 0FFFFFFFFh ; set ECX  
+05: F2 AE     repne scasb        ; find the NULL byte 
+06: 83 C1 02  add ecx, 2  
+07: F7 D9     neg ecx 
+08: 8A 45 0C  mov al, [ebp+0Ch]  ; AL stores value of EBP offset 0C 
+09: 8B FA     mov edi, edx       ; restore pointer to EDI
+10: F3 AA     rep stosb          ; repeat ECX times to  write data from AL to EDI
+11: 8B C2     mov eax, edx       ; EAX now stores return value, which is address of first argument </code></pre>
+            <p>
+              So we can see this snippet would do something like set byte from
+              second argument to the first argument which is equivalent to
+              <span class="inline-highlight"
+                >memset(arg1, arg2, strlen(arg1)+1)</span
+              >
+              <br />
+              line 1 <span class="inline-highlight">[EBP+8]</span> refers to
+              char*
+              <br />
+              line 8 <span class="inline-highlight">[EBP+0C]</span> refers to
+              unsigned char or char
+            </p>
+          </section>
+          <br />
+          <!-- Arithmetici operators -->
+          <section>
+            <p>
+              <span id="arithmetic-operations" class="title-highlight"
+                >Arithmetic Operations</span
+              >
+              such as addition, subtraction, multiplication, and division are
+              natively supported by the instruction set.
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: 83 C4 14 add esp, 14h ; esp = esp + 0x14
+02: 2B C8    sub ecx, eax ; ecx = ecx - eax
+03: 83 EC 0C sub esp, 0Ch ; esp = esp - 0xC
+04: 41       inc ecx      ; ecx = ecx + 1
+05: 4F       dec edi      ; edi = edi - 1</code></pre>
+            <p>
+              <span class="inline-highlight">Multiplication (MUL and IMUL)</span
+              ><br />
+            </p>
+            <ul>
+              <li>
+                On 32-bit x86, multiplying two 32-bit values can produce a
+                64-bit result, so the CPU stores the product(result) in
+                <span class="inline-highlight">EDX:EAX</span> (high 32 bits in
+                <span class="inline-highlight">EDX</span>, low 32 bits in
+                <span class="inline-highlight">EAX</span>).
+              </li>
+              <li>
+                <span class="inline-highlight">MUL</span>: unsigned
+                multiplication
+              </li>
+              <li>
+                <span class="inline-highlight">IMUL</span>: signed
+                multiplication (and has extra convenient forms)
+              </li>
+            </ul>
+            <p>
+              Example of <span class="inline-highlight">MUL</span> as following
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: B8 03 00 00 00 mov eax,3         ; set EAX=3
+02: B9 22 22 22 22 mov ecx,22222222h ; set ECX=0x22222222
+03: F7 E1          mul ecx           ; EDX:EAX = 3 * 0x22222222 = 0x66666666 hence, EDX=0, EAX=0x66666666
+04: B8 03 00 00 00 mov eax,3         ; set EAX=3
+05: B9 00 00 00 80 mov ecx,80000000h ; set ECX=0x80000000
+06: F7 E1          mul ecx           ; EDX:EAX = 3 * 0x80000000 = 0x180000000 -> the result not fit 32-bit register so CPU combine 2 register
+                                     ; hence, EDX=1 (high bit), EAX=0x80000000 (low bit)</code></pre>
+
+            <p>
+              <span class="inline-highlight">IMUL</span> has 3 forms. And its
+              example of <span class="inline-highlight">IMUL</span> as following
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: F7 E9           imul ecx       ; EDX:EAX = EAX * ECX  (IMUL reg/mem — Same as MUL)
+02: 69 F6 A0 01 00+ imul esi, 1A0h ; ESI = ESI * 0x1A0 (IMUL reg1, reg2/mem — reg1 = reg1 * reg2/mem)
+03: 0F AF CE        imul ecx, esi  ; ECX = ECX * ESI (IMUL reg1, reg2/mem, imm — reg1 = reg2 * imm)</code></pre>
+            <p>
+              <span class="inline-highlight">Division (DIV and IDIV)</span
+              ><br />
+            </p>
+            <p>
+              Before performing a division, the CPU must prepare the dividend,
+              displayed in the table below:
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Size</th>
+                  <th>Dividend</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>8-bit</td>
+                  <td>AX</td>
+                </tr>
+                <tr>
+                  <td>16-bit</td>
+                  <td>DX:AX</td>
+                </tr>
+                <tr>
+                  <td>32-bit</td>
+                  <td>EDX:EAX</td>
+                </tr>
+              </tbody>
+            </table>
+            <pre class="code-block"><code class="language-x86asm">mov eax, 100
+xor edx, edx     ; EDX = 0 clear EDX to made dividend
+mov ecx, 3
+div ecx          ; unsigned divide (EDX:EAX)/ECX 
+</code></pre>
+          </section>
+          <br />
+          <!-- Stack Operations and Function Invocation  -->
+          <section>
+            <p>
+              <span id="stack-and-function" class="title-highlight"
+                >Stack Operations and Function Invocation</span
+              >
+            </p>
+            <p>
+              The stack is a
+              <span class="inline-highlight">LIFO</span>
+              (last-in-first-out) structure used for local variables, saved
+              state, and function calls.
+            </p>
+            <ul>
+              <li>
+                <span class="inline-highlight">ESP</span> points to the top of
+                the stack.
+              </li>
+              <li>The stack grows downward (toward lower addresses).</li>
+            </ul>
+
+            Instruction behavior:
+            <ul>
+              <li>
+                <span class="inline-highlight">PUSH</span>: decreases
+                <span class="inline-highlight">ESP</span>, then writes the value
+                to <span class="inline-highlight">[ESP]</span>
+              </li>
+              <li>
+                <span class="inline-highlight">POP</span>: reads [ESP], then
+                increases <span class="inline-highlight">ESP</span>
+              </li>
+            </ul>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">; initial ESP = 0xb20000
+01: B8 AA AA AA AA mov eax, 0AAAAAAAAh
+02: BB BB BB BB BB mov ebx, 0BBBBBBBBh
+03: B9 CC CC CC CC mov ecx, 0CCCCCCCCh
+04: BA DD DD DD DD mov edx, 0DDDDDDDDh
+05: 50             push eax           ; address 0xb1fffc will contain the value 0xAAAAAAAA and ESP
+                                      ; will be 0xb1fffc (=0xb20000-4)
+06: 53             push ebx           ; address 0xb1fff8 will contain the value 0xBBBBBBBB and ESP
+                                      ; will be 0xb1fff8 (=0xb1fffc-4)
+07: 5E             pop esi            ; ESI will contain the value 0xBBBBBBBB and ESP will be 0xb1fffc
+                                      ; (=0xb1fff8+4)
+08: 5F             pop edi            ; EDI will contain the value 0xAAAAAAAA and ESP will be 0xb20000
+                                      ; (=0xb1fffc+4)</code></pre>
+            <div class="image-container">
+              <img
+                src="./img/stack-layout.png"
+                alt="stack layout"
+                class="zoomImage"
+              />
+            </div>
+            <p>
+              As the image above,
+              <span class="inline-highlight">the stack pointer (ESP)</span> is
+              modified whenever
+              <span class="inline-highlight">PUSH/POP</span> but actually it
+              also <span class="inline-highlight">can be modified</span> by
+              <span class="inline-highlight">ADD/SUB</span>. <br />
+              <span class="inline-highlight">ESP</span> is just a normal
+              register, so if we
+              <span class="inline-highlight">sub esp, 0x20</span>, we just make
+              space for 32 bytes on the stack for local variables.
+              <span class="inline-highlight">add esp, 8</span> clear 2 arg with
+              4 bytes each. Base on this point, how CPU translates the function
+              in low-level code?
+            </p>
+            <pre class="code-block"><code class="language-c"
+              >// in C language we can see "sum" is the function which makes sum of first and second argument
+...
+int sum(int a, int b){
+  return a+b;
+}
+int main(){
+  int c = sum(7,8);
+  return c;
+}</code></pre>
+            <pre class="code-block"><code class="language-x86asm"
+              >
+; in low-level code this is how CPU translate the function
+; int sum(int a, int b) { return a+b; }
+sum:
+    push ebp
+    mov  ebp, esp         ; init ebp to store address at bottom of stack 
+    mov  eax, [ebp+8]     ; store a in EAX
+    add  eax, [ebp+12]    ; make the arithmetic instruction add EAX + [EBP+12] which is EAX = 7+8
+    pop  ebp
+    ret
+; int main(){ int c = sum(a,b); return c; }
+main:
+    push ebp
+    mov  ebp, esp
+    sub  esp, 4           ; reserve space for local c (at [ebp-4])
+    push 8                ; b
+    push 7                ; a
+    call sum
+    add  esp, 8           ; cdecl: caller cleans 2 args
+    mov  [ebp-4], eax     ; c = return value
+    mov  eax, [ebp-4]     ; return c in eax
+    mov  esp, ebp
+    pop  ebp
+    ret
+}</code></pre>
+            <p>
+              Before going into details we can see the 2 new instructions which
+              are
+              <span class="inline-highlight">CALL/RET</span>
+            </p>
+            <p>
+              <span class="inline-highlight"> CALL instruction</span>
+              performs two operations:
+            </p>
+            <ul>
+              <li>
+                Push the return address - this is the address of next
+                instruction
+              </li>
+              <li>
+                Change EIP to address of "sum" function then calls the target
+                and begins execution
+              </li>
+            </ul>
+            <p>
+              <span class="inline-highlight"> RET instruction</span>
+              performs:
+            </p>
+            <ul>
+              <li>
+                Pop the return address into EIP. Then jumps to that address and
+                begins execution
+              </li>
+            </ul>
+            <p>
+              <span class="inline-highlight">The calling convention</span>
+            </p>
+            <div class="image-container">
+              <img
+                src="./img/calling-convention.png"
+                alt="calling convention"
+                class="zoomImage"
+              />
+            </div>
+            We will exlain this, more details and examples in Register Set post
+          </section>
+          <br />
+          <!-- Control flow -->
+          <section>
+            <p>
+              <span id="control-flow" class="title-highlight"
+                >Control Flow</span
+              >
+            </p>
+            <p>
+              Similar to function in high-level construct. In this section we
+              will explore how does the CPU implement high-level constructs like
+              <span class="inline-highlight">if/else</span>,
+              <span class="inline-highlight">switch/case</span>, and
+              <span class="inline-highlight">while/for loops</span> in
+              machine-level. And also the
+              <span class="inline-highlight">EFLAGS</span> register is mentioned
+              in this section.
+            </p>
+            <p>
+              Let's begin with a list, which summarizes the common flags in
+              <span class="inline-highlight"> EFLAGS</span>
+            </p>
+            <ul>
+              <li>
+                <span class="inline-highlight">ZF</span> (Zero flag) — If zero
+                or not zero.
+              </li>
+              <li>
+                <span class="inline-highlight">SF</span> (Sign flag) — If
+                negative or positive. By checking the highest bit.
+              </li>
+              <li>
+                <span class="inline-highlight">CF</span> (Carry flag) — If
+                overflow if calculate unsigned number. It applies to
+                <a class="highlight" href="#signed-unsigned-num"
+                  >unsigned numbers</a
+                >.
+              </li>
+              <li>
+                OF (Overflow flag) — If overflow if calculate signed number. It
+                applies to
+                <a class="highlight" href="#signed-unsigned-num"
+                  >signed numbers</a
+                >.
+              </li>
+            </ul>
+            <p>
+              <span id="signed-unsigned-num" class="inline-highlight"
+                >Signed and Unsigned number, what is that?</span
+              >
+            </p>
+            <p>
+              CPU does not know if there is a
+              <span class="inline-highlight">negative</span> number or
+              <span class="inline-highlight">positive</span> number. It’s all
+              based on
+              <span class="inline-highlight">bits</span>
+            </p>
+            <p>
+              So the <span class="inline-highlight">Signed number</span>, which
+              has a positive or negative sign. It coulde be 1, or
+              -1,...Determine by checking the highest bit. For example:
+            </p>
+            <pre class="code-block"><code class="language-x86asm">01111111 = 127
+10000000 = -128
+11111111 = -1</code></pre>
+            <p>
+              How about the
+              <span class="inline-highlight">Unsigned number</span>, which does
+              not has the positive or negative sign. For example:
+            </p>
+            <pre class="code-block"><code class="language-x86asm">00000000 = 0
+00000001 = 1
+11111111 = 255</code></pre>
+            <p>
+              Another example: CPU is reading a number, which is
+              <span class="inline-highlight">11111111</span>
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">11111111 = 255 -> IF the CPU mark this number as a UNSIGNED 
+11111111 = -1 -> IF the CPU mark this number as a SIGNED </code></pre>
+            <p>
+              That some points about Signed and Unsigned number.
+              <br />
+              <br />
+            </p>
+            <p>
+              Now we dive deeper in Control flow. So the flag in
+              <span class="inline-highlight">EFLAG</span> would be set by the
+              result of the
+              <span class="inline-highlight">arithmetic instruction</span>. And
+              the <span class="inline-highlight">J[cc]</span> instruction where
+              the <span class="inline-highlight">"cc"</span> is
+              <span class="inline-highlight">condition code</span> changes the
+              controls flow depending on these flag. See table of the most
+              common condition codes and example below:
+            </p>
+            <div class="image-container">
+              <img
+                src="./img/condition-codes.png"
+                alt="condition codes"
+                class="zoomImage"
+              />
+            </div>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: mov esi, [ebp+8] 
+02: mov edx, [esi]
+03: test edx, edx        ; the TEST instruction performs as same as the AND instruction. Set the flag status  
+04: jz short loc_4E31F9  ; after line 3, the ZF flag in EFLAGS regiser is set.
+; ZF = 1 if EDX ==0 and the instruction in line 4 J/Z write in jz (jump if zero) will be executed
+; ZF = 0 if EDX !=0</code></pre>
+            <p>
+              Based on this, we can understand how an
+              <span class="inline-highlight">if/else construct</span> is
+              implemented at the machine-code level.
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: mov esi, [ebp+8]
+02: mov edx, [esi]
+03: test edx, edx                               ; the "if" condition then set the ZF flag *ESI == 0?...:return
+04: jz short loc_4E31F9
+05: mov ecx, offset _FsRtlFastMutexLookasideList
+06: call _ExFreeToNPagedLookasideList@8         ; call function
+07: and dword ptr [esi], 0                      ; *esi = 0 
+08: lea eax, [esi+4]
+09: push eax
+10: call _FsRtlUninitializeBaseMcb@4
+11: loc_4E31F9:                                 ; instructions if condition is met
+12: pop esi                                     ; return 
+13: pop ebp                        
+14: retn 4                                      ; retn 4 means pop the return address then add 4 to esp 
+15: _FsRtlUninitializeLargeMcb@4 endp</code></pre>
+            <p>
+              So do the
+              <span class="inline-highlight">switch/case construct</span> is a
+              sequence of if/else statements
+            </p>
+            <pre class="code-block"><code class="language-x86asm">01: push ebp
+02: mov ebp, esp        
+03: mov eax, [ebp+8]    ; EAX = *(EBP+8)
+04: sub eax, 41h        ; EAX - 0x41 == 0 ? ZF = 1 : ZF = 0 (check if EAX = "A")
+05: jz short loc_caseA
+06: dec eax
+07: jz short loc_caseB
+08: dec eax
+09: jz short loc_caseC
+10: mov al, 5Ah
+11: movzx eax, al
+12: pop ebp
+13: retn
+14: loc_caseC:          ; same with caseA
+15: mov al, 43h
+16: movzx eax, al
+17: pop ebp
+18: retn
+19: loc_caseB:          ; same with caseA
+20: mov al, 42h
+21: movzx eax, al
+22: pop ebp
+23: retn
+24: loc_caseA:          
+25: mov al, 41h
+26: movzx eax, al   ; return "A" character
+27: pop ebp
+28: retn</code></pre>
+            <p>
+              Easy to understand right? Now next is the
+              <span class="inline-highlight">loop construct</span>. In
+              machine-code loops are implemented using the combination of
+              <span class="inline-highlight">JCC</span> and
+              <span class="inline-highlight">JMP</span>
+            </p>
+            <p>
+              In other words. We can imagine that they are implemented by using
+              <span class="inline-highlight">if/else</span> and
+              <span class="inline-highlight">goto</span>
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-c">// example in Pseudo C
+int i = 0;
+loop_start:
+ if (i < 10) {
+ printf("%d\n", i);
+ i++;
+ goto loop_start;
+ }
+printf("done!n");</code></pre>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">; can be write in ASM like this
+01: 00401002 mov edi, ds:__imp__printf
+02: 00401008 xor esi, esi
+03: 0040100A lea ebx, [ebx+0]
+04: 00401010 loc_401010:
+05: 00401010 push esi
+06: 00401011 push offset Format ; "%d\n"
+07: 00401016 call edi ; __imp__printf
+08: 00401018 inc esi
+09: 00401019 add esp, 8
+10: 0040101C cmp esi, 0Ah
+11: 0040101F jl short loc_401010
+12: 00401021 push offset aDone ; "done!\n"
+13: 00401026 call edi ; __imp__printf
+14: 00401028 add esp, 4</code></pre>
+          </section>
+        </section>
+        <br />
+        <!-- x64 -->
+        <section>
+          <p id="x64" class="title-highlight">x64</p>
+          <br />
+          <p>
+            x64 is an extension of x86, so most architectural concepts remain
+            the same. However, there are several important differences in
+            register layout, addressing, instruction behavior, and calling
+            conventions.
+          </p>
+          <p class="title-highlight" id="x64-register-set-data-types">
+            Register Set and Data Types
+          </p>
+          <ul>
+            <li>
+              In x64, general-purpose registers (GPRs) are 64-bit wide and use
+              the R-prefix
+            </li>
+            <li>
+              Writing to a 32-bit register (like EAX) automatically clears the
+              upper 32 bits of the corresponding 64-bit register (RAX)
+              <pre
+                class="code-block"
+              ><code class="language-x86asm">xor eax, eax   ; RAX becomes 0
+inc eax        ; upper 32 bits also cleared</code></pre>
+            </li>
+            <li>x64 compilers rarely use RBP as a frame pointer</li>
+            <li>
+              Instructions can reference memory relative to the current
+              instruction pointer (RIP)
+              <pre
+                class="code-block"
+              ><code class="language-x86asm">mov rax, [rip + offset]</code></pre>
+            </li>
+          </ul>
+          <p class="inline-highlight">Function Invocation</p>
+          <ul>
+            <li>
+              On x86
+              <ul>
+                <li>Parameters are typically pushed onto the stack.</li>
+              </ul>
+            </li>
+            <li>
+              On x64
+              <ul>
+                <li>Most parameters are passed through registers.</li>
+                <pre class="code-block">
+Windows x64 Calling Convention
+RCX → 1st parameter
+RDX → 2nd
+R8 → 3rd
+R9 → 4th
+Remaining parameters → stack (right to left)</pre
+                >
+              </ul>
+            </li>
+          </ul>
+        </section>
+        <section>
+          <p class="title-highlight" id="sumup">Sumup</p>
+          <p>
+            In this post, we reviewed the fundamentals of x86 (protected mode)
+            and briefly introduced x64. We covered the register set, the
+            instruction set, and the most common instruction groups: data
+            movement, arithmetic, stack-based function calls, and control flow.
           </p>
         </section>
       </article>

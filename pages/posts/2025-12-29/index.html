@@ -36,12 +36,12 @@
           <p>
             <span class="highlight">Overview:</span> In this post, I will
             summarize the key points related to Register Set and Instruction
-            Set, which are mentioned in Chapter I of "Practical Reverse
-            Engineering"
+            Set, which are mentioned in
+            <i class="highlight">Chapter I of Practical Reverse Engineering</i>
           </p>
           <p>
-            Chapter I discusses x86 & x64 architecture in protected mode. It
-            focuses mainly on x86, then extends to x64 (x86-64).
+            Chapter I discusses the x86 and x64 architectures in protected mode.
+            It focuses mainly on x86 and then extends to x64 (x86-64).
           </p>
         </section>
         <!-- outlining -->
@@ -82,8 +82,9 @@
               <span class="inline-highlight">R15</span>. <br />
               <span class="inline-highlight">Register</span> is the
               <span class="inline-highlight">fastest data storage</span> inside
-              a computer used by CPU to performs calculation almost immediately.
-              Some common registers are presented in the table below:
+              a computer used by the CPU to perform calculations almost
+              immediately. Some common registers are presented in the table
+              below:
             </p>
 
             <code class="code-block">
@@ -139,14 +140,16 @@
                     <td>RDX</td>
                     <td>EDX</td>
                     <td>Data</td>
-                    <td>Used to store large result of * and / operators</td>
+                    <td>Used to store large results of * and / operations</td>
                     <td>2nd Argument in function</td>
                   </tr>
                   <tr>
                     <td>R8</td>
                     <td>R8D</td>
                     <td>General</td>
-                    <td>Same with RAX, RCX used when both are busy</td>
+                    <td>
+                      Similar to RAX and RCX, used when those registers are busy
+                    </td>
                     <td>3rd Argument in function</td>
                   </tr>
                   <tr>
@@ -220,8 +223,12 @@
               </table>
             </code>
             <p>
-              In Windows x64 calling convention, RCX/RDX/R8/R9 hold the first
-              four integer/pointer arguments. And we would discuss later in...
+              In the Windows x64 calling convention, RCX/RDX/R8/R9 hold the
+              first four integer/pointer arguments. And we would discuss later
+              in
+              <a href="../2026-01-10/index.html" class="highlight"
+                >Stack & Calling Convention</a
+              >
             </p>
             <!-- <p>
               <span id="callee-saved" class="inline-highlight"
@@ -259,7 +266,7 @@
         <section>
           <p id="instruction-set" class="title-highlight">Instruction Set</p>
           <p>
-            Base on the
+            Based on the
             <span class="inline-highlight">Register Set</span> section, we know
             that the CPU uses registers as data storage to perform calculations.
             So,
@@ -274,8 +281,8 @@
             buckets:
           </p>
           <ul>
-            <li>Arithmetic & Logic Instruction</li>
-            <li>Data Movement & String Instruction family</li>
+            <li>Arithmetic & Logical Instructions</li>
+            <li>Data Movement & String Instructions Family</li>
             <li>Stack Operations and Function Invocation</li>
             <li>Control Flow</li>
           </ul>

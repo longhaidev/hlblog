@@ -35,11 +35,12 @@
         <!-- overview -->
         <section id="fore-word">
           <p>
-            <span class="highlight">Overview:</span> Last two posts, we have
-            explored the most fastest data storage which are Registers, the
-            fundamentals about Instruction Set, and begin with the Arithmetic &
-            Logical Instruction. In this post we will explore how CPU transfer
-            data in Registers and String in x86 also its expand x86-64.
+            <span class="highlight">Overview:</span> In the last two posts, we
+            have explored the fastest data storage which are Registers, the
+            fundamentals of the Instruction Set, and began with the Arithmetic &
+            Logical Instructions. In this post we will explore how the CPU
+            transfer data in Registers and String in x86 and its extension,
+            x86-64.
           </p>
         </section>
         <!-- outlining -->
@@ -95,20 +96,20 @@
             </p>
             <pre
               class="code-block"
-            ><code class="language-x86asm">01: mov esi, 0F003Fh ; set ESI = 0xF003 (immedite to register)
+            ><code class="language-x86asm">01: mov esi, 0F003Fh ; set ESI = 0xF003 (immediate to register)
 02: mov esi, ecx     ; set ESI = ECX (register to register)</code></pre>
             <p>
               <span class="inline-highlight"
                 >How to access the data in memory?</span
               >
-              We now moving to the next useage is to
-              <span class="inline-highlight">move data to or from memory</span>.
-              x86 sets convention to access memory is to use the square brackets
-              <span class="inline-highlight">[ ]</span>. <br />
-              But except the
-              <span class="inline-highlight">LEA</span> instruction, which used
-              <span class="inline-highlight">[ ]</span> but does not reference
-              to memory - And we will discuss about the
+              Now we move to the next usage, which is
+              <span class="inline-highlight">moving data to or from memory</span
+              >. In x86, the convention for accessing memory is to use square
+              brackets <span class="inline-highlight">[ ]</span>. <br />
+              But the exception is the
+              <span class="inline-highlight">LEA</span> instruction, which also
+              uses <span class="inline-highlight">[ ]</span> but does not
+              reference to memory - And we will discuss about the
               <span class="inline-highlight">LEA</span> instruction
               <a href="#lea" class="highlight"> later in this post</a>. See the
               example below performs memory access.
@@ -119,7 +120,7 @@
 02: mov ecx, [eax]         ; set ECX to the value at address EAX
 03: mov [eax], ebx         ; set the memory at address EAX to EBX
 04: mov [esi+34h], eax     ; set the memory address at (ESI+34) to EAX
-05: mov eax, [esi+34h]     ; set EAX to the value at (EAX+34)
+05: mov eax, [esi+34h]     ; set EAX to the value at (ESI+34)
 06: mov edx, [ecx+eax]     ; set EDX to the value at address (ECX+EAX)</code></pre>
             <p>In pseudo C code can be explained:</p>
             <pre class="code-block"><code class="language-c"
@@ -130,15 +131,15 @@ ecx = *eax;
 eax = *(esi + 34);
 edx = *(ecx + eax);</code></pre>
             <p>
-              After those example. Do you have any concerns when see the line
-              4-6? Those instruction lines demonstrate
+              After those examples. Do you notice anything when you see lines
+              4–6? Those instruction lines demonstrate
               <span class="inline-highlight">memory access</span> through a base
               register and its <span class="inline-highlight">offset</span>.
               <br />
               This form is commonly used to access structure members or data
               buffer at the runtime. Example we have a structure. Suppose that
               <span class="inline-highlight">ECX</span>
-              points to a structure of type KDPC defined as
+              points to a structure of type KDPC, defined as
             </p>
             <pre class="code-block"><code class="language-c">kd> dt nt!_KDPC
  +0x000 Type : UChar
@@ -154,21 +155,21 @@ edx = *(ecx + eax);</code></pre>
             <pre
               class="code-block"
             ><code class="language-x86asm">01: mov eax, [ebp+0Ch]
-02: and dword ptr [ecx+1Ch], 0   ; suppose that ecx is point to structure, so [ecx + 0x1C] means the DpcData in structure. We have AND instruction which set the DpcData = 0 or NULL
-03: mov [ecx+0Ch], eax           ; [ecx + 0x0c], which is DeferredRoutine and set it to value in eax
+02: and dword ptr [ecx+1Ch], 0   ; suppose that ECX points to a structure, so [ecx + 0x1C] means the DpcData in structure. The AND instruction sets DpcData to 0 (NULL)
+03: mov [ecx+0Ch], eax           ; [ecx + 0x0c], which is DeferredRoutine, and sets it to the value in EAX
 04: mov eax, [ebp+10h]           
 05: mov dword ptr [ecx], 113h    ; move 0x113 to 4 bytes in ECX
 06: mov [ecx+10h], eax</code></pre>
             <p>
               The next memory access form is commonly used to
               <span class="inline-highlight">access array-type objects</span>.
-              As we already known the array in C is basically
+              As we already know, an array in C is basically
             </p>
 
             <pre
               class="code-block"
             ><code class="language-c">int arr[5]</code></pre>
-            But in machine memory array is look like this
+            But in memory, an array looks like this:
 
             <div class="image-container">
               <img
@@ -199,15 +200,15 @@ edx = *(ecx + eax);</code></pre>
           <br />
           <!-- String Instruction -->
           <p>
-            Similar to the array objects. Next is the instructions are typically
-            used to implement
+            Similar to arrays, the next set of instructions is typically used to
+            implement
             <span id="string-block-data-movement" class="title-highlight"
               >string or memory copy</span
             >
-            when the length is known at the compile time.
+            when the length is known at compile time.
           </p>
           <p>
-            In x86 <span class="inline-highlight">String</span> is not just
+            In x86 <span class="inline-highlight">a string</span> is not just
             "hello" but refers to a sequence of data stored in memory.
           </p>
           <pre class="code-block">
@@ -215,7 +216,7 @@ edx = *(ecx + eax);</code></pre>
  h  e  l  l  o \0</pre
           >
           <p>
-            The last byte refers to the end of string. Beside the
+            The last byte refers to the end of string. Besidesthe
             <span class="inline-highlight">MOVS</span> instruction, there are
             also <span class="inline-highlight">MOVSB, MOVSW, MOVSD</span> to
             move data with 1-, 2-, 4 bytes between two memory access
@@ -224,7 +225,7 @@ edx = *(ecx + eax);</code></pre>
             They implicitly use <span class="inline-highlight">EDI/ESI</span> as
             the destination/source address, respectively. Also automatically
             update the source and destination depending on the flag status (DF),
-            which stored in EFLAGS Register - we talk about this later.
+            which is stored in the EFLAGS register - we talk about this later.
           </p>
           <pre
             class="code-block"
@@ -236,13 +237,13 @@ edx = *(ecx + eax);</code></pre>
 06: movsd                                ; same as above  </code></pre>
         </section>
         <p>
-          <span class="inline-highlight">Explaination:</span> Stored the string
-          or sequence of bytes to the ESI, which refers to source memory. Then
-          write the address refer to the destination memory (EDI - where you
-          want to "paste"). <br />
+          <span class="inline-highlight">Explanation:</span> The string or
+          sequence of bytes is stored at the address in ESI, which refers to
+          source memory. Then write the address refer to the destination memory
+          (EDI - where you want to "paste"). <br />
           Line 3-6 is copy 4 bytes from ESI to EDI, and simultaneously increase
-          both ESI & EDI 4 bytes (the increasement means move to next bytes - a
-          character of string)
+          both ESI & EDI 4 bytes (the increment means moving to the next bytes -
+          a character of string)
         </p>
         <br />
         <p>
@@ -281,14 +282,14 @@ edx = *(ecx + eax);</code></pre>
 03: pop ecx       ; pop it back in ECX. Now ECX = 9.
 04: mov edi, esi  ; set the destination address 
 05: rep stosd     ; write 36 bytes of zero (EAX=0) to the destination (EDI) buffer (STOSD repeated 9 times)
-; this is equivalent lent to memset(edi, 0, 36)</code></pre>
+; this is equivalent to memset(edi, 0, 36)</code></pre>
         <p>
-          Last one is the <span class="inline-highlight">LODS</span>, which read
-          the value from ESI then stores it in AL/ AX/ EAX
+          Last one is the <span class="inline-highlight">LODS</span>, which
+          reads the value from ESI then stores it in AL/ AX/ EAX
         </p>
         <br />
         <p>
-          Final, for perfect ending of this post, we do have a exercise given by
+          Final, for perfect ending of this post, we have an exercise given by
           the book. Image is displayed below:
         </p>
         <div class="image-container">
@@ -302,7 +303,7 @@ edx = *(ecx + eax);</code></pre>
           Take a look over those instructions, we can see the
           <span class="inline-highlight">SCAS</span> and
           <span class="inline-highlight">STOS</span> instruction. <br />
-          Line 3 set EAX = 0, Line 4 set ECX = -1. Base on this we can predict
+          Line 3 set EAX = 0, Line 4 set ECX = -1. Based on this we can predict
           those instructions will calculate sequence byte length-refers to
           string, then write data from AL to EDI.
         </p>

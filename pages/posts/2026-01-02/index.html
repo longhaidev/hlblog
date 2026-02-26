@@ -34,17 +34,17 @@
         <!-- overview -->
         <section id="fore-word">
           <p>
-            <span class="highlight">Overview:</span> Last post, we briefly
-            explore the fundamentals of Register Set and Instruction Set. In
-            this post we will go into more detail about the Arithmetic and
-            Logical Instruction
+            <span class="highlight">Overview:</span> In the last post, we
+            briefly explored the fundamentals of the Register Set and
+            Instruction Set. In this post, we will go into more detail about the
+            Arithmetic and Logical instructions
           </p>
         </section>
         <!-- outlining -->
         <section id="outline">
           <ul>
             <li>
-              <a class="highlight" href="arithmetic-operations">
+              <a class="highlight" href="#arithmetic-operations">
                 Fundamental Arithmetic
               </a>
               <ul>
@@ -73,16 +73,18 @@
             </li>
           </ul>
         </section>
-        <!-- Funamental arithmetic -->
+        <!-- Fundamental arithmetic -->
         <section>
           <p>
-            <span class="title-highlight">Funamental Arithmetic</span>
+            <span class="title-highlight" id="arithmetic-operations"
+              >Fundamental Arithmetic</span
+            >
 
-            such as addition, subtraction, multiplication, division are directly
-            supported. Most of these instructions are quite simple to use but
-            the exception. Multiplication and Division, which involve specific
-            register and slightly more complex behavior. Content below shows the
-            example of these instructions
+            operations such as addition, subtraction, multiplication, and
+            division are directly supported. Most of these instructions are
+            quite simple to use, with the exception of multiplication and
+            division, which involve specific registers and slightly more complex
+            behavior. The content below shows examples of these instructions.
           </p>
           <p>
             So let's begin with
@@ -99,20 +101,20 @@
           <p>
             Now we move to
             <span class="title-highlight" id="mul">MUL and IMUL</span>. The
-            difficult and complex parts begin from here. On x86 Architecture
-            (32-bits), a multiplying from two 32-bits values can produce a
-            64-bit result.
+            difficult and complex parts begin from here. On x86 architecture
+            (32-bit), multiplying two 32-bit values can produce a 64-bit
+            result..
           </p>
           <pre
             class="code-block"
-          ><code class="language-x86asm">3 * 0x80000000 = 0x180000000 ; the produced result is 36-bits wide. This is not going to fit the 32-bits register </code></pre>
+          ><code class="language-x86asm">3 * 0x80000000 = 0x180000000 ; the produced result is 36-bits wide. This is not going to fit in a 32-bit register. </code></pre>
           <p>
-            So, the CPU has to stores the result in
+            So, the CPU has to store the result in
             <span class="inline-highlight">EDX:EAX</span>, which is the
             <span class="inline-highlight"
-              >combination of two 32-bits registers</span
+              >combination of two 32-bit registers</span
             >
-            (high 32-bits store in EDX; and low 32-bits store in EAX). See the
+            (high 32-bit store in EDX; and low 32-bit store in EAX). See the
             <span class="inline-highlight">example of MUL</span> displayed
             below:
           </p>
@@ -123,19 +125,18 @@
 03: F7 E1          mul ecx           ; EDX:EAX = 3 * 0x22222222 = 0x66666666 hence, EDX=0, EAX=0x66666666
 04: B8 03 00 00 00 mov eax,3         ; set EAX=3
 05: B9 00 00 00 80 mov ecx,80000000h ; set ECX=0x80000000
-06: F7 E1          mul ecx           ; EDX:EAX = 3 * 0x80000000 = 0x180000000 -> the result not fit 32-bits register so CPU combines 2 registers
+06: F7 E1          mul ecx           ; EDX:EAX = 3 * 0x80000000 = 0x180000000 -> the result not fit 32-bit register so CPU combines 2 registers
                                      ; hence, EDX=1 (high bit), EAX=0x80000000 (low bit)</code></pre>
           <p>
-            <span class="inline-highlight">IMUL</span> instruction is not
-            difference from the
+            <span class="inline-highlight">IMUL</span> is not different from the
             <span class="inline-highlight">MUL</span> instruction. This is used
             for
             <span class="inline-highlight"
               >signed (we will discuss this later)</span
             >
             multiplication. And the
-            <span class="inline-highlight">IMUL</span> instruction has 3 ways to
-            use. See example:
+            <span class="inline-highlight">IMUL</span> instruction has three
+            forms. See example:
           </p>
           <pre
             class="code-block"
@@ -146,10 +147,10 @@
           <p>
             With
             <span class="inline-highlight">multiplication instruction</span> CPU
-            combines two 32-bits registers to stores result that not fit in
-            32-bits register. So how about the
+            combines two 32-bit registers to stores result that not fit in
+            32-bit register. So how about the
             <span id="div" class="title-highlight">DIV and IDIV</span>? <br />
-            The division instruction only take one parameter as a
+            The division instruction only takes one parameter as a
             <span class="inline-highlight">divisor</span> and have the following
             syntax
             <span class="inline-highlight">DIV/IDIV register/[memory]</span>
@@ -160,10 +161,10 @@
             will
             <span class="inline-highlight"
               >use either AX, DX:AX, EDX:EAX as the dividend</span
-            >. The result turn into
+            >. The result is divided into
             <span class="inline-highlight">quotient</span> and
-            <span class="inline-highlight">remainder</span>. Pair are stored in
-            AL/AH, AX/DX, or EAX/EDX
+            <span class="inline-highlight">remainder</span>. The pair are stored
+            in AL/AH, AX/DX, or EAX/EDX
           </p>
           <pre
             class="code-block"
@@ -174,12 +175,12 @@
 05: B8 0A 00 00 00 mov eax,0Ah                  ; set EAX = 0xA
 06: F6 F1          div cl                       ; AX/CL = A/2 = 5 in AL (quotient)</code></pre>
           <p>
-            More important thing, before CPU performs a
+            More importantly, before the CPU performs a
             <span class="inline-highlight">division instruction</span>, it must
-            prepares the dividend.
+            prepare the dividend.
           </p>
           <pre class="code-block"><code class="language-x86asm">mov eax, 100
-xor edx, edx     ; EDX = 0 clear EDX to made dividend
+xor edx, edx     ; EDX = 0, clear EDX to prepare the dividend
 mov ecx, 3
 div ecx          ; unsigned divide (EDX:EAX)/ECX </code></pre>
         </section>
@@ -188,11 +189,11 @@ div ecx          ; unsigned divide (EDX:EAX)/ECX </code></pre>
         <section>
           <p>
             <span id="bit-level" class="title-highlight"
-              >Bit-level Operations</span
+              >Bit-level operations</span
             >
             work directly on individual bits of a value. Instead of treating
             numbers as whole integers, these instructions manipulate their
-            binary representation and also quite easy to understand. Common
+            binary representation and are quite easy to understand. Common
             bitwise instructions include:
           </p>
           <ul>
@@ -222,7 +223,7 @@ div ecx          ; unsigned divide (EDX:EAX)/ECX </code></pre>
             division behavior. We also looked at bit-level operations such as
             AND, OR, XOR, NOT, shifts, and rotations.
             <span class="inline-highlight"
-              >Next post, we will explore how CPU transfer data between
+              >In the next post, we will explore how CPU transfer data between
               registers, and the string family instruction set.</span
             >
           </p>

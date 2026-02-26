@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="post-status" content="active" />
+    <title>Arithmetic & Logic Instructions</title>
+    <link rel="stylesheet" href="../../../assets/style.min.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="../../../assets/favicon/duck.jpg"
+      type="image/jpeg"
+    />
+    <link rel="apple-touch-icon" href="../../../assets/favicon/duck.jpg" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
+  </head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/x86asm.min.js"></script>
+  <body>
+    <main class="container post-page" data-category="">
+      <a class="back-link" id="backLink" href="#">← All Posts</a>
+      <header class="post-header">
+        <h1 class="post-title">Arithmetic & Logic Instructions</h1>
+        <div class="post-meta">2026-01-02</div>
+      </header>
+      <article class="post-content">
+        <!-- overview -->
+        <section id="fore-word">
+          <p>
+            <span class="highlight">Overview:</span> Last post, we briefly
+            explore the fundamentals of Register Set and Instruction Set. In
+            this post we will go into more detail about the Arithmetic and
+            Logical Instruction
+          </p>
+        </section>
+        <!-- outlining -->
+        <section id="outline">
+          <ul>
+            <li>
+              <a class="highlight" href="arithmetic-operations">
+                Fundamental Arithmetic
+              </a>
+              <ul>
+                <li>
+                  <a href="#add-sub" class="highlight"> ADD and SUB </a>
+                </li>
+                <li>
+                  <a href="#mul" class="highlight"> MUL and IMUL </a>
+                </li>
+                <li><a href="#div" class="highlight">DIV and IDIV</a></li>
+              </ul>
+            </li>
+            <li>
+              <a class="highlight" href="#instruction-set">
+                Bit-level Operations
+              </a>
+              <ul>
+                <li>AND</li>
+                <li>OR</li>
+                <li>XOR</li>
+                <li>NOT</li>
+              </ul>
+            </li>
+            <li>
+              <a href="#sumup" class="highlight">Sumup</a>
+            </li>
+          </ul>
+        </section>
+        <!-- Funamental arithmetic -->
+        <section>
+          <p>
+            <span class="title-highlight">Funamental Arithmetic</span>
+
+            such as addition, subtraction, multiplication, division are directly
+            supported. Most of these instructions are quite simple to use but
+            the exception. Multiplication and Division, which involve specific
+            register and slightly more complex behavior. Content below shows the
+            example of these instructions
+          </p>
+          <p>
+            So let's begin with
+            <span id="add-sub" class="title-highlight">ADD and SUB</span> refers
+            to addition and subtraction
+          </p>
+          <pre
+            class="code-block"
+          ><code class="language-x86asm">01: 83 C4 14 add esp, 14h ; esp = esp + 0x14
+02: 2B C8    sub ecx, eax ; ecx = ecx - eax
+03: 83 EC 0C sub esp, 0Ch ; esp = esp - 0xC
+04: 41       inc ecx      ; ecx = ecx + 1
+05: 4F       dec edi      ; edi = edi - 1</code></pre>
+          <p>
+            Now we move to
+            <span class="title-highlight" id="mul">MUL and IMUL</span>. The
+            difficult and complex parts begin from here. On x86 Architecture
+            (32-bits), a multiplying from two 32-bits values can produce a
+            64-bit result.
+          </p>
+          <pre
+            class="code-block"
+          ><code class="language-x86asm">3 * 0x80000000 = 0x180000000 ; the produced result is 36-bits wide. This is not going to fit the 32-bits register </code></pre>
+          <p>
+            So, the CPU has to stores the result in
+            <span class="inline-highlight">EDX:EAX</span>, which is the
+            <span class="inline-highlight"
+              >combination of two 32-bits registers</span
+            >
+            (high 32-bits store in EDX; and low 32-bits store in EAX). See the
+            <span class="inline-highlight">example of MUL</span> displayed
+            below:
+          </p>
+          <pre
+            class="code-block"
+          ><code class="language-x86asm">01: B8 03 00 00 00 mov eax,3         ; set EAX=3
+02: B9 22 22 22 22 mov ecx,22222222h ; set ECX=0x22222222
+03: F7 E1          mul ecx           ; EDX:EAX = 3 * 0x22222222 = 0x66666666 hence, EDX=0, EAX=0x66666666
+04: B8 03 00 00 00 mov eax,3         ; set EAX=3
+05: B9 00 00 00 80 mov ecx,80000000h ; set ECX=0x80000000
+06: F7 E1          mul ecx           ; EDX:EAX = 3 * 0x80000000 = 0x180000000 -> the result not fit 32-bits register so CPU combines 2 registers
+                                     ; hence, EDX=1 (high bit), EAX=0x80000000 (low bit)</code></pre>
+          <p>
+            <span class="inline-highlight">IMUL</span> instruction is not
+            difference from the
+            <span class="inline-highlight">MUL</span> instruction. This is used
+            for
+            <span class="inline-highlight"
+              >signed (we will discuss this later)</span
+            >
+            multiplication. And the
+            <span class="inline-highlight">IMUL</span> instruction has 3 ways to
+            use. See example:
+          </p>
+          <pre
+            class="code-block"
+          ><code class="language-x86asm">01: F7 E9           imul ecx       ; EDX:EAX = EAX * ECX  (IMUL reg/mem — Same as MUL)
+02: 69 F6 A0 01 00+ imul esi, 1A0h ; ESI = ESI * 0x1A0 (IMUL reg1, reg2/mem — reg1 = reg1 * reg2/mem)
+03: 0F AF CE        imul ecx, esi  ; ECX = ECX * ESI (IMUL reg1, reg2/mem, imm — reg1 = reg2 * imm)
+</code></pre>
+          <p>
+            With
+            <span class="inline-highlight">multiplication instruction</span> CPU
+            combines two 32-bits registers to stores result that not fit in
+            32-bits register. So how about the
+            <span id="div" class="title-highlight">DIV and IDIV</span>? <br />
+            The division instruction only take one parameter as a
+            <span class="inline-highlight">divisor</span> and have the following
+            syntax
+            <span class="inline-highlight">DIV/IDIV register/[memory]</span>
+          </p>
+          <p>
+            Depending on the
+            <span class="inline-highlight">divisor's size</span> DIV instruction
+            will
+            <span class="inline-highlight"
+              >use either AX, DX:AX, EDX:EAX as the dividend</span
+            >. The result turn into
+            <span class="inline-highlight">quotient</span> and
+            <span class="inline-highlight">remainder</span>. Pair are stored in
+            AL/AH, AX/DX, or EAX/EDX
+          </p>
+          <pre
+            class="code-block"
+          ><code class="language-x86asm">1: F7 F1 div ecx                                ; EDX:EAX / ECX, quotient in EAX,
+02: F6 F1          div cl                       ; AX / CL, quotient in AL, remainder in AH
+03: F7 76 24       div dword ptr [esi+24h]      ; see line 1
+04: B1 02          mov cl,2                     ; set CL = 2
+05: B8 0A 00 00 00 mov eax,0Ah                  ; set EAX = 0xA
+06: F6 F1          div cl                       ; AX/CL = A/2 = 5 in AL (quotient)</code></pre>
+          <p>
+            More important thing, before CPU performs a
+            <span class="inline-highlight">division instruction</span>, it must
+            prepares the dividend.
+          </p>
+          <pre class="code-block"><code class="language-x86asm">mov eax, 100
+xor edx, edx     ; EDX = 0 clear EDX to made dividend
+mov ecx, 3
+div ecx          ; unsigned divide (EDX:EAX)/ECX </code></pre>
+        </section>
+        <!-- bit-level operations -->
+        <br />
+        <section>
+          <p>
+            <span id="bit-level" class="title-highlight"
+              >Bit-level Operations</span
+            >
+            work directly on individual bits of a value. Instead of treating
+            numbers as whole integers, these instructions manipulate their
+            binary representation and also quite easy to understand. Common
+            bitwise instructions include:
+          </p>
+          <ul>
+            <li>AND → clears specific bits</li>
+            <li>OR → sets specific bits</li>
+            <li>XOR → toggles bits</li>
+            <li>NOT → inverts all bits</li>
+            <li>SHL / SHR → shift bits left or right</li>
+          </ul>
+          <pre class="code-block"><code class="language-x86asm"
+>06: 83 C8 FF   or eax, 0FFFFFFFFh  ; eax = eax | 0xFFFFFFFF
+07: 83 E1 07   and ecx, 7          ; ecx = ecx & 7
+08: 33 C0      xor eax, eax        ; eax = eax ^ eax
+09: F7 D7      not edi             ; edi = ~edi
+10: C0 E1 04   shl cl, 4           ; cl = cl << 4
+11: D1 E9      shr  ecx, 1         ; ecx = ecx >> 1
+12: C0 C0 03   rol al, 3           ; rotate AL left 3 positions
+13: D0 C8      ror al, 1           ; rotate AL right 1 position</code></pre>
+        </section>
+        <section>
+          <p class="title-highlight" id="sumup">Sumup</p>
+          <p>
+            In this post, we covered the main Arithmetic and Logical
+            instructions in x86. Basic operations like ADD and SUB are simple
+            and direct. MUL, IMUL, DIV, and IDIV are more complex because they
+            use specific registers (EDX:EAX) to handle larger results or
+            division behavior. We also looked at bit-level operations such as
+            AND, OR, XOR, NOT, shifts, and rotations.
+            <span class="inline-highlight"
+              >Next post, we will explore how CPU transfer data between
+              registers, and the string family instruction set.</span
+            >
+          </p>
+        </section>
+      </article>
+      <div id="modal" class="modal">
+        <span id="closeModal" class="close-btn">&times;</span>
+      </div>
+    </main>
+    <script src="../../../assets/app.obf.js" defer></script>
+  </body>
+</html>

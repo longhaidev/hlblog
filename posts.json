@@ -5,34 +5,40 @@
     "path": "/pages/posts/2025-12-14/",
     "status": "active"
   },
-  {
-    "date": "2025-10-12",
-    "title": "CBJS: Reconaissance",
-    "path": "/pages/posts/2025-10-12/",
-    "status": "inactive"
+    {
+    "date": "2025-12-25",
+    "title": "PEB Walk",
+    "path": "/pages/posts/2025-12-25/",
+    "status": "active"
   },
-  {
-    "date": "2025-08-12",
-    "title": "CBJS: SQL Injection",
-    "path": "/pages/posts/2025-08-12/",
-    "status": "inactive"
+   {
+    "date": "2025-12-29",
+    "title": "Register Set & Instruction Set (x86 -> x64)",
+    "path": "/pages/posts/2025-12-29/",
+    "status": "active"
   },
-  {
-    "date": "2025-07-07",
-    "title": "CBJS: Command Injection",
-    "path": "/pages/posts/2025-07-07/",
-    "status": "inactive"
+    {
+    "date": "2026-01-02",
+    "title": "Arithmetic & Logic Instructions",
+    "path": "/pages/posts/2026-01-02/",
+    "status": "active"
   },
-  {
-    "date": "2025-06-16",
-    "title": "CBJS: Path Traversal",
-    "path": "/pages/posts/2025-06-16/",
-    "status": "inactive"
+   {
+    "date": "2026-01-05",
+    "title": "Data Movement & String Instructions",
+    "path": "/pages/posts/2026-01-05/",
+    "status": "active"
   },
-  {
-    "date": "2025-06-04",
-    "title": "CBJS: File upload",
-    "path": "/pages/posts/2025-06-04/",
+   {
+    "date": "2026-01-10",
+    "title": "Stack & Function Calling Convention",
+    "path": "/pages/posts/2026-01-10/",
+    "status": "active"
+  },
+   {
+    "date": "2026-01-12",
+    "title": "Control Flow ",
+    "path": "/pages/posts/2026-01-12/",
     "status": "inactive"
   },
   {
@@ -40,12 +46,7 @@
     "title": "Window Registry",
     "path": "/pages/posts/2026-01-19/",
     "status": "active"
-  },
-    {
-    "date": "2026-01-10",
-    "title": "x86 & x64 Architecture",
-    "path": "/pages/posts/2026-01-10/",
-    "status": "active"
+  
   },
       {
     "date": "2026-01-13",
@@ -53,21 +54,11 @@
     "path": "/pages/posts/2026-01-13/",
     "status": "active"
   },
-  {
-    "date": "2025-12-25",
-    "title": "PEB Walk",
-    "path": "/pages/posts/2025-12-25/",
-    "status": "active"
-  },
+
     {
     "date": "2026-01-29",
     "title": "Task Scheduler in Window",
     "path": "/pages/posts/2026-01-29/",
-    "status": "active"
-  }, {
-    "date": "2025-12-30",
-    "title": "Register Set",
-    "path": "/pages/posts/2025-12-30/",
     "status": "active"
   }
 ]

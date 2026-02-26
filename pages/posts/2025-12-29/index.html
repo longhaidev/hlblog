@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="post-status" content="active" />
+    <title>Register Set & Instruction Set (x86 -> x64)</title>
+    <link rel="stylesheet" href="../../../assets/style.min.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="../../../assets/favicon/duck.jpg"
+      type="image/jpeg"
+    />
+    <link rel="apple-touch-icon" href="../../../assets/favicon/duck.jpg" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
+  </head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/x86asm.min.js"></script>
+  <body>
+    <main class="container post-page" data-category="">
+      <a class="back-link" id="backLink" href="#">← All Posts</a>
+      <header class="post-header">
+        <h1 class="post-title">Register Set & Instruction Set (x86 -> x64)</h1>
+        <div class="post-meta">2025-12-29</div>
+      </header>
+      <article class="post-content">
+        <!-- overview -->
+        <section id="fore-word">
+          <p>
+            <span class="highlight">Overview:</span> In this post, I will
+            summarize the key points related to Register Set and Instruction
+            Set, which are mentioned in Chapter I of "Practical Reverse
+            Engineering"
+          </p>
+          <p>
+            Chapter I discusses x86 & x64 architecture in protected mode. It
+            focuses mainly on x86, then extends to x64 (x86-64).
+          </p>
+        </section>
+        <!-- outlining -->
+        <section id="outline">
+          <ul>
+            <li>
+              <a class="highlight" href="#register-set-data-types">
+                Register Set & Data Type
+              </a>
+            </li>
+            <li>
+              <a class="highlight" href="#instruction-set"> Instruction Set </a>
+            </li>
+            <li>
+              <a href="#sumup" class="highlight">Sumup</a>
+            </li>
+          </ul>
+        </section>
+        <!-- Register and Data Types -->
+        <section>
+          <section>
+            <p class="title-highlight" id="register-set-data-types">
+              Register Set
+            </p>
+            <p>
+              When operating in protected mode, the x86 architecture has eight
+              <span class="inline-highlight">
+                32-bit general-purpose registers (GPRs)
+              </span>
+              and x64 extends x86's eight general-purpose registers to be 64-bit
+              and adds eight new 64-bit registers. <br />
+              The <span class="inline-highlight">64-bit registers</span> have
+              names that begin with <span class="inline-highlight">"R"</span>.
+              For example, the 64-bit extension of eax is called
+              <span class="inline-highlight">RAX</span>. The newly added
+              registers are named
+              <span class="inline-highlight">R8</span> through
+              <span class="inline-highlight">R15</span>. <br />
+              <span class="inline-highlight">Register</span> is the
+              <span class="inline-highlight">fastest data storage</span> inside
+              a computer used by CPU to performs calculation almost immediately.
+              Some common registers are presented in the table below:
+            </p>
+
+            <code class="code-block">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>64-bit Register</th>
+                    <th>32-bit Register</th>
+                    <th>Full name</th>
+                    <th>Main purpose</th>
+                    <th>Calling convention</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Instruction Pointer -->
+                  <tr class="group-separator">
+                    <td rowspan="1"><strong>Instruction Pointer</strong></td>
+                    <td>RIP</td>
+                    <td>EIP</td>
+                    <td>Instruction Pointer</td>
+                    <td>Holds next instruction address</td>
+                    <td></td>
+                  </tr>
+                  <!-- GPR -->
+                  <tr>
+                    <td rowspan="11">
+                      <strong>General Purpose Register - GPR</strong>
+                    </td>
+                    <td>RBX</td>
+                    <td>EBX</td>
+                    <td>General</td>
+                    <td>Used as temp, storing temp data or restored address</td>
+                    <td>
+                      <a class="highlight" href="#callee-saved">Callee-saved</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>RAX</td>
+                    <td>EAX</td>
+                    <td>Accumulator</td>
+                    <td>Used for arithmetic operators (+, -, *, /)</td>
+                    <td>Used to hold the return value of function</td>
+                  </tr>
+                  <tr>
+                    <td>RCX</td>
+                    <td>ECX</td>
+                    <td>Counter</td>
+                    <td>Used to count index in loop, bit shifting</td>
+                    <td>1st argument of a function</td>
+                  </tr>
+                  <tr>
+                    <td>RDX</td>
+                    <td>EDX</td>
+                    <td>Data</td>
+                    <td>Used to store large result of * and / operators</td>
+                    <td>2nd Argument in function</td>
+                  </tr>
+                  <tr>
+                    <td>R8</td>
+                    <td>R8D</td>
+                    <td>General</td>
+                    <td>Same with RAX, RCX used when both are busy</td>
+                    <td>3rd Argument in function</td>
+                  </tr>
+                  <tr>
+                    <td>R9</td>
+                    <td>R9D</td>
+                    <td>General</td>
+                    <td>Similar to R8</td>
+                    <td>4th Argument in function</td>
+                  </tr>
+                  <tr>
+                    <td>RSI</td>
+                    <td>ESI</td>
+                    <td>Source index</td>
+                    <td>
+                      Used as the source pointer to string or memory operations
+                    </td>
+                    <td>
+                      <a class="highlight" href="#callee-saved">Callee-saved</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>RDI</td>
+                    <td>EDI</td>
+                    <td>Destination index</td>
+                    <td>
+                      Used as the destination pointer in string and memory
+                      operations
+                    </td>
+                    <td>
+                      <a class="highlight" href="#callee-saved">Callee-saved</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>RBP</td>
+                    <td>EBP</td>
+                    <td>Base pointer</td>
+                    <td>
+                      Used as frame pointer, pointing to the bottom of the stack
+                    </td>
+                    <td>
+                      <a class="highlight" href="#callee-saved">Callee-saved</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>RSP</td>
+                    <td>ESP</td>
+                    <td>Stack pointer</td>
+                    <td>
+                      Used as stack pointer, pointing to the top of the stack
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>R10-R15</td>
+                    <td>R10D-R15D</td>
+                    <td>General</td>
+                    <td>Used as temp, storing temp data or restored address</td>
+                    <td></td>
+                  </tr>
+                  <!-- Special -->
+                  <tr>
+                    <td rowspan="1"><strong>Special</strong></td>
+                    <td>RFLAGS</td>
+                    <td>EFLAGS</td>
+                    <td>Status flags</td>
+                    <td>
+                      Stores status flags from arithmetic and logical operations
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </code>
+            <p>
+              In Windows x64 calling convention, RCX/RDX/R8/R9 hold the first
+              four integer/pointer arguments. And we would discuss later in...
+            </p>
+            <!-- <p>
+              <span id="callee-saved" class="inline-highlight"
+                >Callee-saved</span
+              >: is a register that must be preserved by the called function
+              <br />
+              You can think of it like this: If you borrow someone’s book
+              (register), you must return it in the same condition.
+            </p>
+
+            <p>
+              In this table, I will briefly introduce the registers, including
+              their names and general purposes. If you want a deeper
+              understanding of how they work and interact with each other,
+              please check out my post on
+              <a href="../2025-12-30/index.html" class="highlight"
+                >Register Set</a
+              >
+            </p>
+            <br /> -->
+            <p><span class="title-highlight">Data Types</span></p>
+            <p>
+              In the x86 architecture, data is typically handled in the
+              following sizes
+            </p>
+            <ul>
+              <li>Byte (8 bits) → Examples: AL, BL, CL</li>
+              <li>Word (16 bits) → Examples: AX, BX, CX</li>
+              <li>Double Word (32 bits) → Examples: EAX, EBX, ECX</li>
+              <li>Quad Word (64 bits)</li>
+            </ul>
+          </section>
+        </section>
+        <!-- Instruction Set -->
+        <section>
+          <p id="instruction-set" class="title-highlight">Instruction Set</p>
+          <p>
+            Base on the
+            <span class="inline-highlight">Register Set</span> section, we know
+            that the CPU uses registers as data storage to perform calculations.
+            So,
+            <span class="inline-highlight">
+              how does the CPU perform those calculations?</span
+            >
+            In this section, we will explore the Instruction Set.
+          </p>
+          <p>
+            The instruction set defines the operations supported by the CPU
+            (16-bit, IA-32, x86-64). It’s huge, but most instructions fall into
+            buckets:
+          </p>
+          <ul>
+            <li>Arithmetic & Logic Instruction</li>
+            <li>Data Movement & String Instruction family</li>
+            <li>Stack Operations and Function Invocation</li>
+            <li>Control Flow</li>
+          </ul>
+        </section>
+        <!-- sumup -->
+        <section>
+          <p class="title-highlight" id="sumup">Sumup</p>
+          <p>
+            In this post, we covered the fundamentals of the
+            <span class="inline-highlight">Register Set</span> and
+            <span class="inline-highlight">Instruction Set</span> in x86 and how
+            they extend to x64. In the following blog posts, we will go into
+            more detail about each instruction mentioned above.
+          </p>
+        </section>
+      </article>
+      <div id="modal" class="modal">
+        <span id="closeModal" class="close-btn">&times;</span>
+      </div>
+    </main>
+    <script src="../../../assets/app.obf.js" defer></script>
+  </body>
+</html>

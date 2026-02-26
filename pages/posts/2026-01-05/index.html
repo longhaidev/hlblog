@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="post-status" content="active" />
+    <title>Data Movement & String Instructions</title>
+    <link rel="stylesheet" href="../../../assets/style.min.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="../../../assets/favicon/duck.jpg"
+      type="image/jpeg"
+    />
+    <link rel="apple-touch-icon" href="../../../assets/favicon/duck.jpg" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
+  </head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/x86asm.min.js"></script>
+
+  <body>
+    <main class="container post-page" data-category="">
+      <a class="back-link" id="backLink" href="#">← All Posts</a>
+      <header class="post-header">
+        <h1 class="post-title">Data Movement & String Instructions</h1>
+        <div class="post-meta">2026-01-05</div>
+      </header>
+      <article class="post-content">
+        <!-- overview -->
+        <section id="fore-word">
+          <p>
+            <span class="highlight">Overview:</span> Last two posts, we have
+            explored the most fastest data storage which are Registers, the
+            fundamentals about Instruction Set, and begin with the Arithmetic &
+            Logical Instruction. In this post we will explore how CPU transfer
+            data in Registers and String in x86 also its expand x86-64.
+          </p>
+        </section>
+        <!-- outlining -->
+        <section id="outline">
+          <ul>
+            <li>
+              <a class="highlight" href="#data-movement"> Data Movement </a>
+              <ul>
+                <li>
+                  <a href="#general-data-movement" class="highlight"
+                    >General Data Movement</a
+                  >
+                </li>
+                <li>
+                  <a href="#string-block-data-movement" class="highlight"
+                    >String & Block Data Movement</a
+                  >
+                </li>
+              </ul>
+            </li>
+
+            <li>
+              <a href="#sumup" class="highlight">Sumup</a>
+            </li>
+          </ul>
+        </section>
+        <!-- Data Movement -->
+        <section>
+          <p>
+            <span id="data-movement" class="title-highlight"
+              >Data Movement</span
+            >
+            refers to how the CPU transfers bytes between registers or between
+            registers and memory. It can be divided into several types of data
+            movement, such as:
+          </p>
+          <ul>
+            <li>Immediate → Register / Memory</li>
+            <li>Register ↔ Memory</li>
+            <li>Register ↔ Register</li>
+          </ul>
+          <!-- General data movement -->
+          <section>
+            <p>
+              So, let's begin with the simple one -
+              <span class="title-highlight" id="general-data-movement"
+                >General Data Movement</span
+              >. The most common instruction for
+              <span class="inline-highlight">moving</span> data is
+              <span class="inline-highlight">MOV</span>. This instruction is
+              used to move a register or immediate to register. Example as
+              below:
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: mov esi, 0F003Fh ; set ESI = 0xF003 (immedite to register)
+02: mov esi, ecx     ; set ESI = ECX (register to register)</code></pre>
+            <p>
+              <span class="inline-highlight"
+                >How to access the data in memory?</span
+              >
+              We now moving to the next useage is to
+              <span class="inline-highlight">move data to or from memory</span>.
+              x86 sets convention to access memory is to use the square brackets
+              <span class="inline-highlight">[ ]</span>. <br />
+              But except the
+              <span class="inline-highlight">LEA</span> instruction, which used
+              <span class="inline-highlight">[ ]</span> but does not reference
+              to memory - And we will discuss about the
+              <span class="inline-highlight">LEA</span> instruction
+              <a href="#lea" class="highlight"> later in this post</a>. See the
+              example below performs memory access.
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: mov dword ptr [eax], 1 ; set the memory at address EAX to 1
+02: mov ecx, [eax]         ; set ECX to the value at address EAX
+03: mov [eax], ebx         ; set the memory at address EAX to EBX
+04: mov [esi+34h], eax     ; set the memory address at (ESI+34) to EAX
+05: mov eax, [esi+34h]     ; set EAX to the value at (EAX+34)
+06: mov edx, [ecx+eax]     ; set EDX to the value at address (ECX+EAX)</code></pre>
+            <p>In pseudo C code can be explained:</p>
+            <pre class="code-block"><code class="language-c"
+>*eax = 1;
+ecx = *eax; 
+*eax = ebx; 
+*(esi + 34) = eax;
+eax = *(esi + 34);
+edx = *(ecx + eax);</code></pre>
+            <p>
+              After those example. Do you have any concerns when see the line
+              4-6? Those instruction lines demonstrate
+              <span class="inline-highlight">memory access</span> through a base
+              register and its <span class="inline-highlight">offset</span>.
+              <br />
+              This form is commonly used to access structure members or data
+              buffer at the runtime. Example we have a structure. Suppose that
+              <span class="inline-highlight">ECX</span>
+              points to a structure of type KDPC defined as
+            </p>
+            <pre class="code-block"><code class="language-c">kd> dt nt!_KDPC
+ +0x000 Type : UChar
+ +0x001 Importance : UChar
+ +0x002 Number : Uint2B
+ +0x004 DpcListEntry : _LIST_ENTRY
+ +0x00c DeferredRoutine : Ptr32 void
+ +0x010 DeferredContext : Ptr32 Void
+ +0x014 SystemArgument1 : Ptr32 Void
+ +0x018 SystemArgument2 : Ptr32 Void
+ +0x01c DpcData : Ptr32 Void</code></pre>
+            <p>And the instructions as following</p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: mov eax, [ebp+0Ch]
+02: and dword ptr [ecx+1Ch], 0   ; suppose that ecx is point to structure, so [ecx + 0x1C] means the DpcData in structure. We have AND instruction which set the DpcData = 0 or NULL
+03: mov [ecx+0Ch], eax           ; [ecx + 0x0c], which is DeferredRoutine and set it to value in eax
+04: mov eax, [ebp+10h]           
+05: mov dword ptr [ecx], 113h    ; move 0x113 to 4 bytes in ECX
+06: mov [ecx+10h], eax</code></pre>
+            <p>
+              The next memory access form is commonly used to
+              <span class="inline-highlight">access array-type objects</span>.
+              As we already known the array in C is basically
+            </p>
+
+            <pre
+              class="code-block"
+            ><code class="language-c">int arr[5]</code></pre>
+            But in machine memory array is look like this
+
+            <div class="image-container">
+              <img
+                src="./img/array.gif"
+                alt="array in memory"
+                class="zoomImage"
+              />
+            </div>
+            <p>
+              The format is as follows:
+              <span class="inline-highlight">[Base + Index * scale]</span>. This
+              is best understood through examples:
+            </p>
+            <pre
+              class="code-block"
+            ><code class="language-x86asm">01: loop_start:
+02: mov eax, [edi+4]        ; eax now stores the value at edi+offset 4
+03: mov eax, [eax+ebx*4]    ; eax now stores value at [eax+ebx*4], ebx is used as the index and 4 is scale factor
+04: test eax, eax           ; this instruction sets EFLAGS we will talk about it later.
+                            ; Instruction updates the status flags without modifying EAX. It is commonly used to check whether EAX is zero.
+...
+05: jz short loc_7F627F     ; jump if zero, CPU jumps to this address if the instruction test eax, eax set the ZF = 1;
+06: loc_7F627F:
+07: inc ebx                 ; + ebx which is index of the array
+08: cmp ebx, [edi]          ; compare the index with value at offset 0 
+09: jl short loop_start     ; jump if less than </code></pre>
+          </section>
+          <br />
+          <!-- String Instruction -->
+          <p>
+            Similar to the array objects. Next is the instructions are typically
+            used to implement
+            <span id="string-block-data-movement" class="title-highlight"
+              >string or memory copy</span
+            >
+            when the length is known at the compile time.
+          </p>
+          <p>
+            In x86 <span class="inline-highlight">String</span> is not just
+            "hello" but refers to a sequence of data stored in memory.
+          </p>
+          <pre class="code-block">
+68 65 6C 6C 6F 00
+ h  e  l  l  o \0</pre
+          >
+          <p>
+            The last byte refers to the end of string. Beside the
+            <span class="inline-highlight">MOVS</span> instruction, there are
+            also <span class="inline-highlight">MOVSB, MOVSW, MOVSD</span> to
+            move data with 1-, 2-, 4 bytes between two memory access
+          </p>
+          <p>
+            They implicitly use <span class="inline-highlight">EDI/ESI</span> as
+            the destination/source address, respectively. Also automatically
+            update the source and destination depending on the flag status (DF),
+            which stored in EFLAGS Register - we talk about this later.
+          </p>
+          <pre
+            class="code-block"
+          ><code class="language-x86asm">01: mov esi, offset _RamdiskBootDiskGuid ; ESI = pointer to RamdiskBootDiskGuid
+02: lea edi, [ebp-0C0h]                  ; EDI is an address somewhere on the stack
+03: movsd                                ; copies 4 bytes from ESI to EDI; increments both pointers by 4
+04: movsd                                ; same as above
+05: movsd                                ; same as above
+06: movsd                                ; same as above  </code></pre>
+        </section>
+        <p>
+          <span class="inline-highlight">Explaination:</span> Stored the string
+          or sequence of bytes to the ESI, which refers to source memory. Then
+          write the address refer to the destination memory (EDI - where you
+          want to "paste"). <br />
+          Line 3-6 is copy 4 bytes from ESI to EDI, and simultaneously increase
+          both ESI & EDI 4 bytes (the increasement means move to next bytes - a
+          character of string)
+        </p>
+        <br />
+        <p>
+          Another class of data movement instructions with implicit source and
+          destination includes the
+          <span class="inline-highlight">SCAS</span> and
+          <span class="inline-highlight">STOS</span> instructions. Both are
+          quite similar to MOV and its family
+        </p>
+        <p>
+          The <span class="inline-highlight">SCAS</span> instruction
+          <span class="inline-highlight">READ and COMPARES</span> AL/ AX/ EAX
+          <span class="inline-highlight"
+            >with data at memory address - EDI</span
+          >
+        </p>
+        <pre
+          class="code-block"
+        ><code class="language-x86asm">01: xor al, al    ; set AL to 0 (NUL byte) - this refers to "\0" end string
+02: mov ebx, edi  ; remember now EBX has pointer to Destination Memory
+03: repne scasb   ; scan 1 byte and compare AL=0 with byte stored in EDI. increase EDI 1 byte. Repeat until match NULL bytes 
+; when this instruction in line 3 ends, it means we reached the NUL byte in the string buffer
+04: sub edi, ebx  ; edi is now the NUL byte location. Subtract that from the original pointer to the length.</code></pre>
+        <p>
+          The opposite of <span class="inline-highlight">SCAS</span> is
+          <span class="inline-highlight">STOS</span>, both are quite similar
+          about how they work. But
+          <span class="inline-highlight">STOS</span> does
+          <span class="inline-highlight">WRITE</span> the value from AL/ AX/ EAX
+          to <span class="inline-highlight">memory address - EDI</span>
+        </p>
+        <pre
+          class="code-block"
+        ><code class="language-x86asm">01: xor eax, eax  ; set EAX to 0
+02: push 9        ; push 9 on the stack
+03: pop ecx       ; pop it back in ECX. Now ECX = 9.
+04: mov edi, esi  ; set the destination address 
+05: rep stosd     ; write 36 bytes of zero (EAX=0) to the destination (EDI) buffer (STOSD repeated 9 times)
+; this is equivalent lent to memset(edi, 0, 36)</code></pre>
+        <p>
+          Last one is the <span class="inline-highlight">LODS</span>, which read
+          the value from ESI then stores it in AL/ AX/ EAX
+        </p>
+        <br />
+        <p>
+          Final, for perfect ending of this post, we do have a exercise given by
+          the book. Image is displayed below:
+        </p>
+        <div class="image-container">
+          <img
+            src="./img/string-instruction-exercise.png"
+            class="zoomImage"
+            alt="exercise"
+          />
+        </div>
+        <p>
+          Take a look over those instructions, we can see the
+          <span class="inline-highlight">SCAS</span> and
+          <span class="inline-highlight">STOS</span> instruction. <br />
+          Line 3 set EAX = 0, Line 4 set ECX = -1. Base on this we can predict
+          those instructions will calculate sequence byte length-refers to
+          string, then write data from AL to EDI.
+        </p>
+        <p class="inline-highlight">Instruction breakdown</p>
+        <pre
+          class="code-block"
+        ><code class="language-x86asm">01: 8B 7D 08  mov edi, [ebp+8]   ; EDI stores address of first argument of the function
+02: 8B D7     mov edx, edi       ; EDX stores backup pointer to first arg
+03: 33 C0     xor eax, eax       ; set EAX = 0 so AL also = 0, this will be the NULL Byte
+04: 83 C9 FF  or ecx, 0FFFFFFFFh ; set ECX  
+05: F2 AE     repne scasb        ; find the NULL byte 
+06: 83 C1 02  add ecx, 2  
+07: F7 D9     neg ecx 
+08: 8A 45 0C  mov al, [ebp+0Ch]  ; AL stores value of EBP offset 0C 
+09: 8B FA     mov edi, edx       ; restore pointer to EDI
+10: F3 AA     rep stosb          ; repeat ECX times to  write data from AL to EDI
+11: 8B C2     mov eax, edx       ; EAX now stores return value, which is address of first argument </code></pre>
+        <p>
+          So we can see this snippet would do something like set byte from
+          second argument to the first argument which is equivalent to
+          <span class="inline-highlight"
+            >memset(arg1, arg2, strlen(arg1)+1)</span
+          >
+        </p>
+        <!-- sum up  -->
+        <section>
+          <p class="title-highlight" id="sumup">Sumup</p>
+          <p>
+            In this post, we explored how x86 handles data movement, from basic
+            MOV instructions between registers and memory to more advanced
+            addressing modes used for structures and arrays. We also examined
+            string instructions like MOVS, SCAS, STOS, and LODS. <br />
+            Next post we will explore how CPU handles data with
+            <span class="inline-highlight">Stack Structure</span> and its
+            <span class="inline-highlight">Calling Convention</span>
+          </p>
+        </section>
+        <!-- lea -->
+        <section>
+          <p>
+            <span id="lea" class="title-highlight">LEA</span> computes the
+            address of a memory expression and stores it in a register without
+            accessing memory.
+          </p>
+          <pre
+            class="code-block"
+          ><code class="language-x86asm">lea eax, [ebx+ecx*4+8]   ; eax = ebx + ecx*4 + 8</code></pre>
+        </section>
+      </article>
+      <div id="modal" class="modal">
+        <span id="closeModal" class="close-btn">&times;</span>
+      </div>
+    </main>
+    <script src="../../../assets/app.obf.js" defer></script>
+  </body>
+</html>

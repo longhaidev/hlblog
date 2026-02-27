@@ -262,7 +262,7 @@ jo overflow_label ; jump if overflow</code></pre>
             to conditional jumps. <br />
             Now next is the
             <span class="inline-highlight">loop construct</span>. In
-            machine-code loops are implemented using the combination of
+            machine-code, loops are implemented using the combination of
             <span class="inline-highlight">JCC</span> and
             <span class="inline-highlight">JMP</span>
           </p>
@@ -286,16 +286,16 @@ printf("done!n");</code></pre>
             class="code-block"
           ><code class="language-x86asm">; can be write in ASM like this
 01: 00401002 mov edi, ds:__imp__printf
-02: 00401008 xor esi, esi
+02: 00401008 xor esi, esi ; set esi = 0 
 03: 0040100A lea ebx, [ebx+0]
-04: 00401010 loc_401010:
-05: 00401010 push esi
+04: 00401010 loc_401010:                   ; the loop begins here 
+05: 00401010 push esi                      ; esi is the count variable
 06: 00401011 push offset Format ; "%d\n"
 07: 00401016 call edi ; __imp__printf
-08: 00401018 inc esi
-09: 00401019 add esp, 8
-10: 0040101C cmp esi, 0Ah
-11: 0040101F jl short loc_401010
+08: 00401018 inc esi                       ; increase esi
+09: 00401019 add esp, 8                    ; clean 8 bytes from stack after using printf
+10: 0040101C cmp esi, 0Ah                  ; esi - 10 = 0 ? then set the flag which is (SF XOR OF)
+11: 0040101F jl short loc_401010           ; if SF XOR OF = 1, jump back to line 4 
 12: 00401021 push offset aDone ; "done!\n"
 13: 00401026 call edi ; __imp__printf
 14: 00401028 add esp, 4</code></pre>

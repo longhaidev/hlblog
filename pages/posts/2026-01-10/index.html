@@ -35,8 +35,7 @@
       <article class="post-content">
         <section id="fore-word">
           <p>
-            <span class="highlight">Overview:</span> In the last recently post
-            on
+            <span class="highlight">Overview:</span> In the previous post on
             <a href="../2026-01-05/index.html" class="highlight"
               >Data Management & String Instructions</a
             >. We explored how CPU handles data transfer between registers and
@@ -79,9 +78,9 @@
             <span class="inline-highlight">LIFO</span>
             (last-in-first-out) structure used for local variables, saved state,
             and function calls. <br />
-            From CPU perspective a stack is a contiguous memory region pointed
-            to by <span class="inline-highlight">ESP</span> and it grows
-            downwards
+            From the CPU’s perspective, the stack is a contiguous memory region
+            pointed to by <span class="inline-highlight">ESP</span> , and it
+            grows downward.
           </p>
           <div class="image-container-500-500 image-container-center">
             <img src="./img/stack.gif" class="zoomImage" alt="stack" />
@@ -145,7 +144,7 @@
             <br />
           </p>
           <p>
-            That is CPU perspective a stack structure.
+            That is how the stack works from the CPU’s perspective.
             <span class="title-highlight" id="function-invocation"></span> So
             how about function? While high-level programming languages have the
             concept of functions that can be called and returned. From CPU
@@ -240,15 +239,19 @@ pop eip   ; pop and set EIP to return_address
               2 task.
               <pre class="code-block"><code class="language-x86asm"
 >pop eip 
-add esp, 12 ; add 4 to esp as default, then add more 8 to esp</code></pre>
+add esp, 8 ; add 4 to esp as default, then add more 8 to esp</code></pre>
             </li>
           </ul>
-
+          <p>
+            With this understanding, we can now explore how different calling
+            conventions formalize these rules.
+          </p>
+          <br />
           <p>
             <span id="calling-convention" class="title-highlight"
-              >The calling convention</span
+              >Calling convention</span
             >
-            a set of rules dictating how function calls work at the machine
+            is a set of rules that define how function calls work at the machine
             level.
           </p>
           <p>
@@ -288,7 +291,7 @@ add esp, 12 ; add 4 to esp as default, then add more 8 to esp</code></pre>
           <hr />
           <p>
             <span id="caller" class="inline-highlight">Calleer</span>-Refers to
-            a function call to another function
+            a function that call to another function
           </p>
           <p>
             <span id="callee" class="inline-highlight">Callee</span>-Function
@@ -339,18 +342,101 @@ System V requires 16-byte stack alignment before CALL.
             >
             in x86 and x86-64.
           </p>
-          <p>Begin with x86</p>
+          <p class="title-highlight">Starting with x86 (32-bit)</p>
           <p>
-            Example of the basic <span class="inline-highlight">cdecl</span>
+            Example of the basic <span class="inline-highlight">cdecl</span>,
+            its code in C either ASM
           </p>
           <!-- <pre class="code-block"><code class="language-c"></code></pre> -->
-          <pre
-            class="code-block"
-          ><code class="language-c">int add(int a, int b) {
+          <pre class="code-block"><code class="language-c">// example in C
+int add(int a, int b) {
     return a + b;
 }
 int main(){int x = add(2,3); return x}</code></pre>
-          <!-- Control flow -->
+          <pre class="code-block"><code class="language-x86asm"
+>add:               ; add is the callee 
+push ebp
+mov ebp, esp
+mov eax, [ebp+8]
+add eax, [ebp+12]
+pop ebp
+ret                 ; just pop eip 
+
+main:
+    push 3          ; order right-to-left
+    push 2
+    call add        ; main is caller, call to add function 
+    add esp, 8      ; caller-main has to clean the stack by modifying esp
+</code></pre>
+          <p>Example of <span class="inline-highlight">sdtcall</span></p>
+          <pre
+            class="code-block"
+          ><code class="language-c">int __stdcall add(int a, int b)</code></pre>
+          <pre class="code-block"><code class="language-x86asm"
+>add:               ; add is the callee 
+push ebp
+mov ebp, esp
+mov eax, [ebp+8]
+add eax, [ebp+12]
+pop ebp
+ret 8              ; callee clean the stack by modifying esp = esp + 4 + 8
+
+main:
+    push 3          ; order right-to-left
+    push 2
+    call add        ; main is caller, call to add function 
+</code></pre>
+          <p>Example of <span class="inline-highlight">fastcall</span></p>
+          <pre
+            class="code-block"
+          ><code class="language-c">int __fastcall add(int a, int b, int c)</code></pre>
+          <pre class="code-block"><code class="language-x86asm"
+>add:               ; add is the callee 
+push ebp
+mov ebp, esp
+mov eax, ecx
+add eax, edx
+pop ebp
+ret 4              ; callee clean the stack by modifying esp = esp + 4 + 4 (just 1 agrument pushed into stack)
+
+main:
+    mov ecx, 1    ; first two arguments assign to registers (ECX, EDX)
+    mov edx, 2
+    push 3         ; third argument assign to stack
+    call add       ; main is caller, call to add function 
+</code></pre>
+          <p class="title-highlight">With x86-64 (64-bit)</p>
+          <p>
+            Because x86-64 has more registers than x86, there for first four
+            arguments will be stored in four register, which is RCX, RDX, R8, R9
+          </p>
+          <p>
+            Also, Microsoft x64 requires 32-byte shadow space allocated by the
+            caller. 32 bytes shadow space = 4 qword slots for RCX, RDX, R8, R9.
+          </p>
+          <pre class="code-block"><code class="language-x86asm"
+>sum:
+    mov rax, rcx
+    add rax, rdx
+    add rax, r8
+    add rax, r9
+    add rax, qword ptr [rsp+40]  ; because return address is pushed into stack 
+    ret
+main:
+    sub rsp, 40                 ; 32-byte shadow space + align
+    mov rcx, 1                  ; arg1
+    mov rdx, 2                  ; arg2
+    mov r8, 4                   ; arg3
+    mov r9, 5                   ; arg4
+    mov qword ptr [rsp+32], 3   ; arg5 (get from stack, placed after shadow space)
+    call sum
+    add rsp, 40
+    ret
+</code></pre>
+          <p>The picture below shown the stack layout</p>
+          <div class="image-container">
+            <img src="./img/call sum.png" alt="stay-layout" class="zoomImage" />
+          </div>
         </section>
       </article>
       <div id="modal" class="modal">

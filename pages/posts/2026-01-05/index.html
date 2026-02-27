@@ -239,8 +239,8 @@ edx = *(ecx + eax);</code></pre>
         <p>
           <span class="inline-highlight">Explanation:</span> The string or
           sequence of bytes is stored at the address in ESI, which refers to
-          source memory. Then write the address refer to the destination memory
-          (EDI - where you want to "paste"). <br />
+          source memory. Then copy bytes from source memory to the destination
+          memory (EDI - where you want to "paste"). <br />
           Line 3-6 is copy 4 bytes from ESI to EDI, and simultaneously increase
           both ESI & EDI 4 bytes (the increment means moving to the next bytes -
           a character of string)
@@ -262,11 +262,11 @@ edx = *(ecx + eax);</code></pre>
         </p>
         <pre
           class="code-block"
-        ><code class="language-x86asm">01: xor al, al    ; set AL to 0 (NUL byte) - this refers to "\0" end string
-02: mov ebx, edi  ; remember now EBX has pointer to Destination Memory
-03: repne scasb   ; scan 1 byte and compare AL=0 with byte stored in EDI. increase EDI 1 byte. Repeat until match NULL bytes 
+        ><code class="language-x86asm">01: xor al, al    ; set AL to 0 (NULL byte) - this refers to "\0" end string
+02: mov ebx, edi  ; remember, now EBX is pointing to Destination Memory
+03: repne scasb   ; scan 1 byte and compare byte stored in EDI with AL (NULL byte). increase EDI 1 byte. Repeat until match NULL byte 
 ; when this instruction in line 3 ends, it means we reached the NUL byte in the string buffer
-04: sub edi, ebx  ; edi is now the NUL byte location. Subtract that from the original pointer to the length.</code></pre>
+04: sub edi, ebx  ; edi is now the NUL byte location. Subtract that from the original pointer(EBX in line 2) to the length.</code></pre>
         <p>
           The opposite of <span class="inline-highlight">SCAS</span> is
           <span class="inline-highlight">STOS</span>, both are quite similar

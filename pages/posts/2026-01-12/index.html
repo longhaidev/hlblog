@@ -22,6 +22,7 @@
     />
   </head>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/x86asm.min.js"></script>
 
   <body>
     <main class="container post-page" data-category="">
@@ -31,125 +32,184 @@
         <div class="post-meta">2026-01-12</div>
       </header>
       <article class="post-content">
-        <!-- <section>
-            <p>
-              <span id="control-flow" class="title-highlight"
-                >Control Flow</span
+        <section id="fore-word">
+          <p>
+            <span class="highlight">Overview:</span> In this post we will
+            explore how does the CPU implement high-level constructs like
+            <span class="inline-highlight">if/else</span>,
+            <span class="inline-highlight">switch/case</span>, and
+            <span class="inline-highlight">while/for loops</span> in
+            machine-level. And also the
+            <span class="inline-highlight">EFLAGS</span> register is mentioned
+            in this section.
+          </p>
+        </section>
+        <section id="outline">
+          <ul>
+            <li>
+              <a class="highlight" href="#eflags">EFLAGS</a>
+            </li>
+            <li>
+              <a class="highlight" href="#flags-condition-code"
+                >Flags & Condition Code</a
               >
-            </p>
-            <p>
-              Similar to function in high-level construct. In this section we
-              will explore how does the CPU implement high-level constructs like
-              <span class="inline-highlight">if/else</span>,
-              <span class="inline-highlight">switch/case</span>, and
-              <span class="inline-highlight">while/for loops</span> in
-              machine-level. And also the
-              <span class="inline-highlight">EFLAGS</span> register is mentioned
-              in this section.
-            </p>
-            <p>
-              Let's begin with a list, which summarizes the common flags in
-              <span class="inline-highlight"> EFLAGS</span>
-            </p>
-            <ul>
-              <li>
-                <span class="inline-highlight">ZF</span> (Zero flag) — If zero
-                or not zero.
-              </li>
-              <li>
-                <span class="inline-highlight">SF</span> (Sign flag) — If
-                negative or positive. By checking the highest bit.
-              </li>
-              <li>
-                <span class="inline-highlight">CF</span> (Carry flag) — If
-                overflow if calculate unsigned number. It applies to
-                <a class="highlight" href="#signed-unsigned-num"
-                  >unsigned numbers</a
-                >.
-              </li>
-              <li>
-                OF (Overflow flag) — If overflow if calculate signed number. It
-                applies to
-                <a class="highlight" href="#signed-unsigned-num"
-                  >signed numbers</a
-                >.
-              </li>
-            </ul>
-            <p>
-              <span id="signed-unsigned-num" class="inline-highlight"
-                >Signed and Unsigned number, what is that?</span
-              >
-            </p>
-            <p>
-              CPU does not know if there is a
-              <span class="inline-highlight">negative</span> number or
-              <span class="inline-highlight">positive</span> number. It’s all
-              based on
-              <span class="inline-highlight">bits</span>
-            </p>
-            <p>
-              So the <span class="inline-highlight">Signed number</span>, which
-              has a positive or negative sign. It coulde be 1, or
-              -1,...Determine by checking the highest bit. For example:
-            </p>
-            <pre class="code-block"><code class="language-x86asm">01111111 = 127
+            </li>
+            <li>
+              <a class="highlight" href="#calling-convention">Flow Construct</a>
+            </li>
+            <li>
+              <a href="#sumup" class="highlight">Sumup</a>
+            </li>
+          </ul>
+        </section>
+        <section>
+          <p>
+            <span id="eflags" class="title-highlight">EFLAGS Register </span>
+            is register in x86 used to store the state result of the operations.
+            They do not contain any data like EAX or EBX.
+          </p>
+          <p>
+            Can't wait much longer let's begin with a list, which summarizes
+            some common flags in
+            <span class="inline-highlight"> EFLAGS</span>
+          </p>
+          <ul>
+            <li>
+              <span class="inline-highlight">ZF</span> (Zero flag) — If zero or
+              not zero.
+            </li>
+            <li>
+              <span class="inline-highlight">SF</span> (Sign flag) — If negative
+              or positive. By checking the highest bit.
+            </li>
+            <li>
+              <span class="inline-highlight">CF</span> (Carry flag) — If
+              overflow if calculate unsigned number. It applies to
+              <a class="highlight" href="#signed-unsigned-num"
+                >unsigned numbers</a
+              >.
+            </li>
+            <li>
+              <span class="inline-highlight">OF</span> (Overflow flag) — If
+              overflow if calculate signed number. It applies to
+              <a class="highlight" href="#signed-unsigned-num">signed numbers</a
+              >.
+            </li>
+          </ul>
+          <p>
+            The Arithmetic instructions update these flag based on the result.
+            See the example
+          </p>
+          <pre class="code-block"><code class="language-x86asm">mov eax, 5
+cmp eax, 5 ; cmp instruction actually is (eax - 5)? but does not stores result in EAX but set flag in EFLAGS
+; after cmp instruction, ZF was set to 1. Because 5-5 = 0 </code></pre>
+          <p>
+            Above section mentioned about
+            <span id="signed-unsigned-num" class="title-highlight"
+              >Signed and Unsigned number, so what is that?</span
+            >
+          </p>
+          <p>
+            CPU does not know if there is a
+            <span class="inline-highlight">negative</span> number or
+            <span class="inline-highlight">positive</span> number. It’s all
+            based on
+            <span class="inline-highlight">bit</span>
+          </p>
+          <p>
+            So the <span class="inline-highlight">Signed number</span>, which
+            has a positive or negative sign. It coulde be 1, or -1,...Determine
+            by checking the highest bit. For example:
+          </p>
+          <pre class="code-block"><code class="language-x86asm">01111111 = 127
 10000000 = -128
 11111111 = -1</code></pre>
-            <p>
-              How about the
-              <span class="inline-highlight">Unsigned number</span>, which does
-              not has the positive or negative sign. For example:
-            </p>
-            <pre class="code-block"><code class="language-x86asm">00000000 = 0
+          <p>
+            How about the
+            <span class="inline-highlight">Unsigned number</span>, which does
+            not has the positive or negative sign. For example:
+          </p>
+          <pre class="code-block"><code class="language-x86asm">00000000 = 0
 00000001 = 1
 11111111 = 255</code></pre>
-            <p>
-              Another example: CPU is reading a number, which is
-              <span class="inline-highlight">11111111</span>
-            </p>
-            <pre
-              class="code-block"
-            ><code class="language-x86asm">11111111 = 255 -> IF the CPU mark this number as a UNSIGNED 
+          <p>
+            Another example: CPU is reading a number, which is
+            <span class="inline-highlight">11111111</span>
+          </p>
+          <pre
+            class="code-block"
+          ><code class="language-x86asm">11111111 = 255 -> IF the CPU mark this number as a UNSIGNED 
 11111111 = -1 -> IF the CPU mark this number as a SIGNED </code></pre>
-            <p>
-              That some points about Signed and Unsigned number.
-              <br />
-              <br />
-            </p>
-            <p>
-              Now we dive deeper in Control flow. So the flag in
-              <span class="inline-highlight">EFLAG</span> would be set by the
-              result of the
-              <span class="inline-highlight">arithmetic instruction</span>. And
-              the <span class="inline-highlight">J[cc]</span> instruction where
-              the <span class="inline-highlight">"cc"</span> is
-              <span class="inline-highlight">condition code</span> changes the
-              controls flow depending on these flag. See table of the most
-              common condition codes and example below:
-            </p>
-            <div class="image-container">
-              <img
-                src="./img/condition-codes.png"
-                alt="condition codes"
-                class="zoomImage"
-              />
-            </div>
-            <pre
-              class="code-block"
-            ><code class="language-x86asm">01: mov esi, [ebp+8] 
-02: mov edx, [esi]
-03: test edx, edx        ; the TEST instruction performs as same as the AND instruction. Set the flag status  
-04: jz short loc_4E31F9  ; after line 3, the ZF flag in EFLAGS regiser is set.
-; ZF = 1 if EDX ==0 and the instruction in line 4 J/Z write in jz (jump if zero) will be executed
-; ZF = 0 if EDX !=0</code></pre>
-            <p>
-              Based on this, we can understand how an
-              <span class="inline-highlight">if/else construct</span> is
-              implemented at the machine-code level.
-            </p>
-            <pre
-              class="code-block"
-            ><code class="language-x86asm">01: mov esi, [ebp+8]
+          <p>
+            More example with
+            <span class="inline-highlight">Signed and Unsigned</span> number
+            with the <span class="inline-highlight">SF-Sign Flag</span>.
+          </p>
+          <pre class="code-block"><code class="language-x86asm">mov eax, 1
+sub eax, 2 ; eax - 2 which means 1-2 = -1 ; so the SF was set to 1 and ZF = 0</code></pre>
+          <p>
+            <span id="flags-condition-code" class="title-highlight">
+              So what exacly purpose of the EFLAGS and its flags?</span
+            >
+          </p>
+          <p>
+            Flags in
+            <span class="inline-highlight">EFLAGS</span> would be set by the
+            result of the
+            <span class="inline-highlight">arithmetic instructions</span>. And
+            the CPU also supports instructions, which are
+            <span class="inline-highlight">J[cc]</span> instructions where the
+            <span class="inline-highlight">"cc"</span> is
+            <span class="inline-highlight">condition code</span> to help the CPU
+            to control the flow. See table of the most common condition codes
+            and example below:
+          </p>
+          <div class="image-container">
+            <img
+              src="./img/condition-codes.png"
+              alt="condition codes"
+              class="zoomImage"
+            />
+          </div>
+          <p>Also the series of example presents as following</p>
+          <span class="inline-highlight">EQUAL & NOT EQUAL</span>
+          <pre class="code-block"><code class="language-x86asm">mov eax, 5
+cmp eax, 5 ; 5-5 = 0 ; ZF = 1
+je equal_label ; jump if equal ; je jump if ZF = 1  </code></pre>
+          <pre class="code-block"><code class="language-x86asm">mov eax, 5
+cmp eax, 3 ; 5 - 3 = 2 ; ZF = 0 
+jne not_equal ; jump if not equal ; jne jump if ZF = 0</code></pre>
+          <span class="inline-highlight">BELOW & ABOVE OR EQUAL</span>
+          <pre class="code-block"><code class="language-x86asm">mov eax, 3
+cmp eax, 5 ; 3-5 = -2 ; CF = 1 ; CF use for unsigned operations
+jb below_label ; jump if below ; jump if CF = 1</code></pre>
+          <pre class="code-block"><code class="language-x86asm">mov eax, 4
+test eax, eax ; similar to and eax, eax
+jz zero_label ; jump if zero (ZF = 1)</code></pre>
+          <pre class="code-block"><code class="language-x86asm">mov eax, 7
+cmp eax, 5 ; 7-5 =2 ; CF = 0
+jae above_or_equal ; jump if above or equal</code></pre>
+          <span class="inline-highlight">LESS & GREATER</span>
+          <pre class="code-block"><code class="language-x86asm">mov eax, -1
+cmp eax, 1 ; -1 < 1 ; SF ≠ OF
+jl less_label ; jump if SF XOR OF = 1</code></pre>
+          <pre class="code-block"><code class="language-x86asm">mov eax, 5
+cmp eax, 2 ; ZF = 0, SF = OF (SF XOR OP = 0)
+jg greater_label ; jump if greater</code></pre>
+          <span class="inline-highlight">OVERFLOW</span>
+          <pre class="code-block"><code class="language-x86asm">mov al, 127
+add al, 1 ; 127 + 1 = -128 OF = 1
+jo overflow_label ; jump if overflow</code></pre>
+
+          <p>
+            Based on the flags in EFLAGS, we can probably already guess how
+            branching is implemented at the machine level. Because they involve
+            a compare/ test followed by a Jcc
+          </p>
+
+          <pre
+            class="code-block"
+          ><code class="language-x86asm">01: mov esi, [ebp+8]
 02: mov edx, [esi]
 03: test edx, edx                               ; the "if" condition then set the ZF flag *ESI == 0?...:return
 04: jz short loc_4E31F9
@@ -164,12 +224,12 @@
 13: pop ebp                        
 14: retn 4                                      ; retn 4 means pop the return address then add 4 to esp 
 15: _FsRtlUninitializeLargeMcb@4 endp</code></pre>
-            <p>
-              So do the
-              <span class="inline-highlight">switch/case construct</span> is a
-              sequence of if/else statements
-            </p>
-            <pre class="code-block"><code class="language-x86asm">01: push ebp
+          <p>
+            So do the
+            <span class="inline-highlight">switch/case construct</span> is a
+            sequence of if/else statements
+          </p>
+          <pre class="code-block"><code class="language-x86asm">01: push ebp
 02: mov ebp, esp        
 03: mov eax, [ebp+8]    ; EAX = *(EBP+8)
 04: sub eax, 41h        ; EAX - 0x41 == 0 ? ZF = 1 : ZF = 0 (check if EAX = "A")
@@ -197,22 +257,23 @@
 26: movzx eax, al   ; return "A" character
 27: pop ebp
 28: retn</code></pre>
-            <p>
-              From this pattern, we can see how high-level constructs map
-              directly to conditional jumps. Now next is the
-              <span class="inline-highlight">loop construct</span>. In
-              machine-code loops are implemented using the combination of
-              <span class="inline-highlight">JCC</span> and
-              <span class="inline-highlight">JMP</span>
-            </p>
-            <p>
-              In other words. We can imagine that they are implemented by using
-              <span class="inline-highlight">if/else</span> and
-              <span class="inline-highlight">goto</span>
-            </p>
-            <pre
-              class="code-block"
-            ><code class="language-c">// example in Pseudo C
+          <p>
+            From this pattern, we can see how high-level constructs map directly
+            to conditional jumps. <br />
+            Now next is the
+            <span class="inline-highlight">loop construct</span>. In
+            machine-code loops are implemented using the combination of
+            <span class="inline-highlight">JCC</span> and
+            <span class="inline-highlight">JMP</span>
+          </p>
+          <p>
+            In other words. We can imagine that they are implemented by using
+            <span class="inline-highlight">if/else</span> and
+            <span class="inline-highlight">goto</span>
+          </p>
+          <pre
+            class="code-block"
+          ><code class="language-c">// example in Pseudo C
 int i = 0;
 loop_start:
  if (i < 10) {
@@ -221,9 +282,9 @@ loop_start:
  goto loop_start;
  }
 printf("done!n");</code></pre>
-            <pre
-              class="code-block"
-            ><code class="language-x86asm">; can be write in ASM like this
+          <pre
+            class="code-block"
+          ><code class="language-x86asm">; can be write in ASM like this
 01: 00401002 mov edi, ds:__imp__printf
 02: 00401008 xor esi, esi
 03: 0040100A lea ebx, [ebx+0]
@@ -238,7 +299,7 @@ printf("done!n");</code></pre>
 12: 00401021 push offset aDone ; "done!\n"
 13: 00401026 call edi ; __imp__printf
 14: 00401028 add esp, 4</code></pre>
-          </section> -->
+        </section>
       </article>
       <div id="modal" class="modal">
         <span id="closeModal" class="close-btn">&times;</span>

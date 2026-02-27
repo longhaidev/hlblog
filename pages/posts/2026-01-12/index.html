@@ -55,7 +55,7 @@
               >
             </li>
             <li>
-              <a class="highlight" href="#calling-convention">Flow Construct</a>
+              <a class="highlight" href="#branching">Branching</a>
             </li>
             <li>
               <a href="#sumup" class="highlight">Sumup</a>
@@ -202,9 +202,10 @@ add al, 1 ; 127 + 1 = -128 OF = 1
 jo overflow_label ; jump if overflow</code></pre>
 
           <p>
-            Based on the flags in EFLAGS, we can probably already guess how
-            branching is implemented at the machine level. Because they involve
-            a compare/ test followed by a Jcc
+            Based on the flags in EFLAGS, we can probably already guess
+            <span id="branching" class="title-highlight">
+              how branching is implemented at the machine level</span
+            >. Because they involve a compare/ test followed by a Jcc
           </p>
 
           <pre
@@ -299,6 +300,15 @@ printf("done!n");</code></pre>
 12: 00401021 push offset aDone ; "done!\n"
 13: 00401026 call edi ; __imp__printf
 14: 00401028 add esp, 4</code></pre>
+        </section>
+        <section>
+          <p id="sumup">Sumup</p>
+          <p>
+            At the end of this post, we can undertand that at the machine level,
+            control flow is built entirely on flags and jumps. Arithmetic and
+            comparison instructions such as cmp and test update the EFLAGS
+            register
+          </p>
         </section>
       </article>
       <div id="modal" class="modal">
